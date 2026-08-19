@@ -1,2 +1,2 @@
-# arq_trabalho
-Simulador de [insira ISA aqui] 
+# Simulador de [insira ISA aqui]
+simula a ISA q decidirmos
