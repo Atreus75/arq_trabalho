@@ -2,6 +2,7 @@
 #define EXTENDED_INSTRUCTIONS 9
 #define MEM_INSTRUCTIONS 14
 
+// TIPOS
 typedef struct {
 	int opcode;
 	char name[5];
