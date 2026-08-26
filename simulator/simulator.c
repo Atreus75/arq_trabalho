@@ -47,4 +47,4 @@ typedef enum {
     OP_JNZE = 0b1101,
     OP_CALL = 0b1110,
     OP_EXTENDED = 0b1111 
-} Opcode;
+} OPCODE;
