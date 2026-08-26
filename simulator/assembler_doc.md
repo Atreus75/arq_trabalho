@@ -42,4 +42,4 @@ Utilizada para processar os argumentos de linha de comando do programa.
 * **int argc**: Quantidade de argumentos a serem analisados.
 * **char * argv[]**: Array de strings contendo cara parâmetro.
 * **int * optionStates**: Array de inteiros onde cada posição representa o estado de um parâmetro. As posições são 0 para "-o" e 1 para "-i" no momento. O valor 0 em cada posição significa que o argumento não foi encontrado, enquanto o valor 1 simboliza que o argumento foi encontrado.
-* 
+* **outputPath**: Ponteiro de *char* onde será salvo o caminho especificado após a opção "-o".
