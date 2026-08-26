@@ -28,7 +28,7 @@ void mic1_init(MIC1 *m) {
     }
 }
 
-
+//2: uma instrução por vez! (von niuma)
 void mic1_step(MIC1 *m) {
     // 1. FETCH: pega o numero de 16 bits que está na pos atual da memoria
     uint16_t instruction = m->memory[m->PC];
