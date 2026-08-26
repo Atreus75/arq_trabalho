@@ -7,5 +7,3 @@ simula a ISA q decidirmos
 * [Jessé Amorim](https://github.com/jesga06)
 * [Pedro Henriques](https://github.com/nesquilxz)
 * [Rodrigo Soares](https://github.com/Atreus75)
-oi jessé 
-oi rodrigo
