@@ -2,7 +2,7 @@
 simula a ISA q decidirmos
 
 ## Créditos
-* [n sei o nome do mano](taca o github)
+* [Lucas Saud](https://github.com/lucario100ae)
 * [Bruno Benites](https://github.com/brunombe)
 * [Jessé Amorim](https://github.com/jesga06)
 * [Pedro Henriques](https://github.com/nesquilxz)
