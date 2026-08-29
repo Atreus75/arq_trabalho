@@ -49,6 +49,9 @@ void mic1_step(MIC1 *m) {
         case 0b0010: // ADDD
             m->AC += m->memory[operando];
             break;
+        case 0b0011: // SUBD
+            m->AC -= m->memory[operando];
+            break;
         case 0b0100: // JPOS
             if (m->AC >= 0) m->PC = operando;
             break;
