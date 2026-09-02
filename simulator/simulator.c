@@ -2,21 +2,10 @@
 // melhor achar um nome mais sofisticado
 
 #include <stdio.h>
-#include <stdint.h>
 #include <string.h>
+#include "simulator.h"
 
-#define MEMO_SIZE 4096
-
-//1: representar os componentes do mic1
-
-typedef struct componentesMIC1 {
-  uint16_t PC;
-  int16_t AC;  //AC pode ficar neg por causa do jneg
-  uint16_t SP;
-  uint16_t memory[MEMO_SIZE];
-  int running;
-}MIC1;
-
+//1: representar os componentes do mic1 -> está no .h agora (é uma definição).
 
 //starta zerado
 void mic1_init(MIC1 *m) {
@@ -31,15 +20,12 @@ void mic1_init(MIC1 *m) {
 
 //2: uma instrução por vez! (von niuma)
 void mic1_step(MIC1 *m) {
-    // 1. FETCH: pega o numero de 16 bits que está na pos atual da memoria
     uint16_t instruction = m->memory[m->PC];
     m->PC++;
 
-    // 2. DECODE: extrai o opcode (4 bits mais significativos) e o operando (12 bits restantes)
-    uint8_t opcode = (instruction >> 12) & 0xF; // >> empurra os bits a direita. ex: 0111 0000 0000 0101 fica 0111. & 0xF garante que nao sobre nada dps os 4 primeiros bits
-    uint16_t operando = instruction & 0x0FFF; // sobra apenas o operando. 0x0FFF remove o opcode.
+    uint8_t opcode = (instruction >> 12) & 0xF;
+    uint16_t operando = instruction & 0x0FFF;
 
-    // 3. EXECUTE
     switch (opcode) {
         case 0b0000: // LODD
             m->AC = m->memory[operando];
@@ -50,7 +36,7 @@ void mic1_step(MIC1 *m) {
         case 0b0010: // ADDD
             m->AC += m->memory[operando];
             break;
-        case 0b0011: // SUBD
+        case 0b0011: // SUBD -- esse opcode era vago na tabela do Rodrigo
             m->AC -= m->memory[operando];
             break;
         case 0b0100: // JPOS
@@ -89,8 +75,7 @@ void mic1_step(MIC1 *m) {
             m->PC = operando;
             break;
         case 0b1111:
-            // instruction estendida - falta resolver 
-            printf("instruction estendida ainda nao implementada\n");
+            printf("instrucao estendida ainda nao implementada\n");
             m->running = 0;
             break;
         default:
@@ -98,5 +83,3 @@ void mic1_step(MIC1 *m) {
             break;
     }
 }
-
-
