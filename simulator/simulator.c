@@ -1,6 +1,7 @@
 // Código do simulador
 // melhor achar um nome mais sofisticado
 
+#include <stdio.h>
 #include <stdint.h>
 #include <string.h>
 
