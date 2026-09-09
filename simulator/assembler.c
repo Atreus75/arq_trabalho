@@ -129,7 +129,6 @@ uint16_t assembleLine(char * line){
 		linePos++;
 	}
 	instruction = (opcode << 12) | (operand & 0xFFF);
-	printf("Instruction: %b\nOperand: %b\n", opcode, operand);
 	return instruction;	
 }
 
@@ -139,6 +138,7 @@ int main(int argc, char * argv[]){
 	char outputPath[255] = {0};
 	processArguments(argc, argv, optionStates, outputPath);
 	uint16_t instruction = assembleLine("addd 38");
+	printf("Complete instruction: %016b\n", instruction);
 	FILE * fp = fopen(outputPath, "wb");
 	fwrite(&instruction, sizeof(uint16_t), 1, fp);
 	fclose(fp);
