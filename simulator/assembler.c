@@ -7,11 +7,13 @@ Assembly em texto ---> binário 01
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
+#include <stdint.h>
 
 memInstruction memInstructionArray[MEM_INSTRUCTIONS] = {
 	{0b0000, "lodd"},
 	{0b0001, "stod"},
 	{0b0010, "addd"},
+	{0b0011, "subd"},
 	{0b0100, "jpos"},
 	{0b0101, "jzer"},
 	{0b0110, "jump"},
@@ -38,7 +40,9 @@ extendedInstruction extendedInstructionArray[EXTENDED_INSTRUCTIONS] = {
 };
 
 errorStruct errorCodes = {
-	.ArgumentError = 1
+	.ArgumentError = 1,
+	.InvalidOperand = 2,
+	.InvalidInstruction = 3
 };
 
 void raiseError(int code, int msgCount, ...){
@@ -51,12 +55,26 @@ void raiseError(int code, int msgCount, ...){
 	exit(code);
 }
 
+int isNumeric(char * str){
+	int pos = 0;
+	for (; (str[pos] != '\0') && (str[pos] >= '0' && str[pos] <= '9'); pos++);
+	if (str[pos] == '\0') return 1;
+	return 0;
+}
+
+int isInstruction(char * str){
+	for (int c = 0; c < MEM_INSTRUCTIONS; c++){
+		if (strcmp(str, memInstructionArray[c].name) == 0) return memInstructionArray[c].opcode;
+	}
+	return -1;
+}
+
 void processArguments(int argc, char * argv[], int * optionStates, char * outputPath){
 // Argument processing function.
 	char * usageMessage = {
 		"usage: ./assembler [options]\n"
 		"\t-o: Optional file output path. Ex: ./assembler -o output.bin\n"
-		"\t-i: Interface method. Generates the binary content and sends for the web interface back-end. Use only with the web server interface.\n"
+		"\t-i: Interface mode. Generates the binary content and sends for the web interface back-end. Use only with the web server interface.\n"
 	};
 
 	// Argument counting
@@ -75,6 +93,42 @@ void processArguments(int argc, char * argv[], int * optionStates, char * output
 			optionStates[1] = 1;
 		}
 	}
+}
+
+void assembleLine(char * line){
+	char currentToken[5] = {0};
+	int linePos = 0, endOfToken = 0, instructionFound = 0, opcode = 0, operand = 0, tokenPos = 0;
+	uint16_t instruction = 0;
+	while (line[linePos] != '\n' || line[linePos] != '\0'){
+
+		if (endOfToken && !instructionFound){
+			tokenPos = 0;
+			endOfToken = 0;
+			currentToken[4] = 0;
+			opcode = isInstruction(currentToken);
+			if (opcode < 0){
+				raiseError(errorCodes.InvalidOperand, 3, "[-] Invalid Instruction: instruction not found at line \"", line, "\"\n\n");
+			}
+			instructionFound = 1;
+			memset(currentToken, '\0', 5);
+		}else if (endOfToken && instructionFound){ 
+			tokenPos = 0;
+			if ( !(isNumeric(currentToken)) ){
+				raiseError(errorCodes.InvalidOperand, 3, "[-] Operand Error: non numeric operand at line \"", line, "\"\n\n");
+			}
+			operand = atoi(currentToken);
+			if (operand > 4095 || operand < 0){
+				raiseError(errorCodes.InvalidOperand, 3, "[-] Operand Error: out of range operand at line \"", line, "\"\n\n");
+			}
+			break;	
+		}else if (line[linePos] != ' '){
+			currentToken[tokenPos] = line[linePos];
+			tokenPos++;
+		}else endOfToken = 1;
+		linePos++;
+	}
+	
+	//instruction e operand devem ter os valores corretos aqui.
 }
 
 int main(int argc, char * argv[]){

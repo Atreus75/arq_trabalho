@@ -1,6 +1,6 @@
 // MACROS
 #define EXTENDED_INSTRUCTIONS 9
-#define MEM_INSTRUCTIONS 14
+#define MEM_INSTRUCTIONS 15
 
 // TIPOS
 
@@ -13,6 +13,8 @@ typedef memInstruction extendedInstruction;
 
 typedef struct {
 	int ArgumentError; 
+	int InvalidOperand;
+	int InvalidInstruction;
 } errorStruct;
 
 // FUNÇÕES 
