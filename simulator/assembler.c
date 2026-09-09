@@ -88,47 +88,49 @@ void processArguments(int argc, char * argv[], int * optionStates, char * output
 			if (argc <= (c+1) || strcmp(argv[c+1], "-i") == 0){
 				raiseError(errorCodes.ArgumentError, 2, "[-] Argument error: no path provided for output.\n\n", usageMessage);
 			}
-			strcpy(outputPath, argv[++c]);
+			c++;
+			strcpy(outputPath, argv[c]);
 		}else if (strcmp(argv[c], "-i") == 0 && !optionStates[1]){
 			optionStates[1] = 1;
 		}
 	}
 }
 
-void assembleLine(char * line){
+uint16_t assembleLine(char * line){
 	char currentToken[5] = {0};
-	int linePos = 0, endOfToken = 0, instructionFound = 0, opcode = 0, operand = 0, tokenPos = 0;
+	int linePos = 0, instructionFound = 0, opcode = 0, operand = 0, tokenPos = 0;
 	uint16_t instruction = 0;
-	while (line[linePos] != '\n' || line[linePos] != '\0'){
-
-		if (endOfToken && !instructionFound){
-			tokenPos = 0;
-			endOfToken = 0;
-			currentToken[4] = 0;
-			opcode = isInstruction(currentToken);
-			if (opcode < 0){
-				raiseError(errorCodes.InvalidOperand, 3, "[-] Invalid Instruction: instruction not found at line \"", line, "\"\n\n");
+	while (1){
+		char c = line[linePos];
+		if (c == ' ' || c == '\n' || c == '\0'){
+			if (!instructionFound){
+				tokenPos = 0;
+				opcode = isInstruction(currentToken);
+				if (opcode < 0){
+					raiseError(errorCodes.InvalidOperand, 3, "[-] Invalid Instruction: instruction not found at line \"", line, "\"\n\n");
+				}
+				instructionFound = 1;
+				memset(currentToken, '\0', 5);
+				continue;
+			}else{
+				if ( !(isNumeric(currentToken)) ){
+					raiseError(errorCodes.InvalidOperand, 3, "[-] Operand Error: non numeric operand at line \"", line, "\"\n\n");
+				}
+				operand = atoi(currentToken);
+				if (operand > 4095 || operand < 0){
+					raiseError(errorCodes.InvalidOperand, 3, "[-] Operand Error: out of range operand at line \"", line, "\"\n\n");
+				}
 			}
-			instructionFound = 1;
-			memset(currentToken, '\0', 5);
-		}else if (endOfToken && instructionFound){ 
-			tokenPos = 0;
-			if ( !(isNumeric(currentToken)) ){
-				raiseError(errorCodes.InvalidOperand, 3, "[-] Operand Error: non numeric operand at line \"", line, "\"\n\n");
-			}
-			operand = atoi(currentToken);
-			if (operand > 4095 || operand < 0){
-				raiseError(errorCodes.InvalidOperand, 3, "[-] Operand Error: out of range operand at line \"", line, "\"\n\n");
-			}
-			break;	
-		}else if (line[linePos] != ' '){
-			currentToken[tokenPos] = line[linePos];
+			if (c == '\0') break;
+		}else{
+			currentToken[tokenPos] = c;
 			tokenPos++;
-		}else endOfToken = 1;
+		}
 		linePos++;
 	}
-	
-	//instruction e operand devem ter os valores corretos aqui.
+	instruction = (opcode << 12) | (operand & 0xFFF);
+	printf("Instruction: %b\nOperand: %b\n", opcode, operand);
+	return instruction;	
 }
 
 int main(int argc, char * argv[]){
@@ -136,5 +138,10 @@ int main(int argc, char * argv[]){
 	int optionStates[2] = {0, 0};
 	char outputPath[255] = {0};
 	processArguments(argc, argv, optionStates, outputPath);
+	uint16_t instruction = assembleLine("addd 38");
+	FILE * fp = fopen(outputPath, "wb");
+	fwrite(&instruction, sizeof(uint16_t), 1, fp);
+	fclose(fp);
 	return 0;
 }
+
