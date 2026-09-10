@@ -21,10 +21,12 @@ Exatamente igual ao anterior, com a diferença apenas do nome, para que possamos
 typedef memInstruction extendedInstruction;
 ```
 ### errorStruct
-Struct criado para organizar os códigos de retorno utilizados em cada caso de erro. Retornar códigos de erro personalizados com `return [codigo]` nos ajuda a debugar melhor o programa, pois podemos saber exatamente que tipo de erro ocorreu.
+Struct criado para organizar os códigos de retorno utilizados em cada caso de erro. Retornar códigos de erro personalizados com `exit(codigo)` nos ajuda a debugar melhor o programa, pois podemos saber exatamente que tipo de erro ocorreu.
 ```C
 typedef struct {
 	int ArgumentError; 
+	int InvalidOperand;
+	int InvalidInstruction;
 } errorStruct;
 ```
 
@@ -43,3 +45,8 @@ Utilizada para processar os argumentos de linha de comando do programa.
 * **char * argv[]**: Array de strings contendo cara parâmetro.
 * **int * optionStates**: Array de inteiros onde cada posição representa o estado de um parâmetro. As posições são 0 para "-o" e 1 para "-i" no momento. O valor 0 em cada posição significa que o argumento não foi encontrado, enquanto o valor 1 simboliza que o argumento foi encontrado.
 * **outputPath**: Ponteiro de *char* onde será salvo o caminho especificado após a opção "-o".
+
+### uint16_t assembleLine(char * line)
+Converte uma linha de assembly MAC-1 para o equivalente numérico em 16 bits da instrução, pronta para ser escrita.
+#### Parâmetros
+* **char \* **: String terminada em "\0" ou "\n" para processamento.
