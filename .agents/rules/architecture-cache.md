@@ -18,8 +18,8 @@ by agents and read by agents.
 ---
 
 ## What It Is Not
-- It is **not** committed to version control. It is a gitignored, developer-local
-  file. No skill, rule, or workflow may stage or commit it.
+- It is **not** an ephemeral or secret file. In this project, it is tracked in version
+  control to ensure all contributors and agents share the exact same structural context.
 - It is **not** a substitute for the actual source code. It is a navigational
   index. When the cache and the source code disagree, the source code is correct
   and the cache must be updated.
@@ -36,20 +36,13 @@ If the file does not exist, run the `cache-init` workflow to create it.
 
 ---
 
-## Gitignore Requirement
-On first use in any project, verify that `.agents/architecture_cache.md` is excluded
-from version control:
+## Version Control Policy
+By project policy, `.agents/architecture_cache.md` is tracked in version control
+as a shared Single Source of Truth (SSOT) across all team members and contributors.
 
-1. Check whether `.agents/architecture_cache.md`
-   is covered by an existing `.gitignore` pattern.
-2. If not covered, append the appropriate entry to `.gitignore`:
-   ```
-   .agents/architecture_cache.md
-   ```
-3. Commit the `.gitignore` update alone with:
-   `chore: exclude architecture cache from version control`
-4. Never skip this step. A committed cache exposes project topology and
-   developer workflow details to the public repository history.
+1. Ensure `.agents/architecture_cache.md` is **not** ignored in `.gitignore`.
+2. Keep the cache updated whenever architecture, entry points, or module contracts change.
+3. Commit cache updates alongside structural changes or as atomic documentation updates (`docs:`).
 
 ---
 
@@ -195,8 +188,8 @@ The cache must be updated after any session that changes:
 - The open issues list (new finding flagged, existing finding resolved).
 - The release baseline (new version shipped, new performance baseline recorded).
 
-Cache updates are written to the local file immediately after the relevant
-commit is made. They are not staged or committed.
+Cache updates are written to the cache file and committed to version control
+alongside architectural changes or as dedicated documentation updates (`docs:`).
 
 ---
 
@@ -217,7 +210,7 @@ When `.agents/architecture_cache.md` does not exist:
 6. **Mark incomplete sections**: if a section cannot be populated without
    deeper investigation, write `[Pending: requires further investigation]`
    rather than leaving it empty or guessing.
-7. **Gitignore the file** (see Gitignore Requirement above).
+7. **Track in version control**: ensure the cache is committed to version control.
 
 The initialization is itself an observable action. Record the date and a
 one-line description in the `Last updated` field.
@@ -238,7 +231,7 @@ Stale entries are not silently ignored. They are either:
 ---
 
 ## Constraints
-- Never commit `.agents/architecture_cache.md` to version control.
+- Keep `.agents/architecture_cache.md` synchronized and tracked in version control as a shared team asset.
 - Never populate a cache section with Speculative or Inferred data without
   labeling it as such (see `evidence-taxonomy.md`).
 - Never use the cache as a substitute for reading the actual source when a
