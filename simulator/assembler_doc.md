@@ -1,6 +1,6 @@
 # Documentação do Assembler
 ## MACROS (defines)
-### #define MEM_INSTRUCTIONS 14
+### #define MEM_INSTRUCTIONS 15
 Quantidade de instruções comuns (de acesso á memória) suportadas no momento.
 
 ### #define EXTENDED_INSTRUCTIONS 9
@@ -50,3 +50,17 @@ Utilizada para processar os argumentos de linha de comando do programa.
 Converte uma linha de assembly MAC-1 para o equivalente numérico em 16 bits da instrução, pronta para ser escrita.
 #### Parâmetros
 * **char \* **: String terminada em "\0" ou "\n" para processamento.
+
+### int isNumeric(char * str)
+Verifica se todos os caracteres da string fornecida são dígitos numéricos ('0'-'9').
+#### Parâmetros
+* **char * str**: String terminada em "\0" a ser validada.
+#### Retorno
+* Retorna 1 se a string for estritamente numérica, ou 0 caso contrário.
+
+### int isInstruction(char * str)
+Busca se a string corresponde ao mnemônico de uma instrução comum conhecida.
+#### Parâmetros
+* **char * str**: String contendo o nome da instrução.
+#### Retorno
+* Retorna o opcode numérico correspondente se encontrado, ou -1 caso não seja uma instrução válida.
