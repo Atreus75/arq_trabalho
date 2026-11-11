@@ -1,0 +1,64 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  @apply bg-win-desktop text-win-text font-sans;
+  font-size: 13px;
+  /* Windows Classic nao usava antialiasing suave: o texto era nitido e
+     um pouco "cru". -webkit-font-smoothing:none aproxima esse efeito
+     em navegadores WebKit sem deixar o texto ilegivel. */
+  -webkit-font-smoothing: none;
+  text-rendering: optimizeSpeed;
+}
+
+/* Barra de rolagem no estilo Windows Classic: retangular, sem raio,
+   com setas visiveis simuladas por gradiente e o "thumb" em relevo. */
+::-webkit-scrollbar {
+  width: 16px;
+  height: 16px;
+}
+::-webkit-scrollbar-track {
+  background: #C0C0C0;
+}
+::-webkit-scrollbar-thumb {
+  background: #C0C0C0;
+  box-shadow: inset -1px -1px 0 0 #404040, inset 1px 1px 0 0 #FFFFFF, inset -2px -2px 0 0 #808080, inset 2px 2px 0 0 #DFDFDF;
+}
+::-webkit-scrollbar-corner {
+  background: #C0C0C0;
+}
+
+/* Sem cantos arredondados em lugar nenhum: Win98 e 100% retangular. */
+* {
+  border-radius: 0 !important;
+}
+
+/* Selecao de texto no azul classico, para reforcar a identidade. */
+::selection {
+  background: #000080;
+  color: #FFFFFF;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* Pequena homenagem aos cavalos, sem som nem movimento fora da execucao. */
+.horse { display: inline-block; font-family: Georgia, serif; font-size: 44px; line-height: 1; color: #804000; transform-origin: bottom center; }
+.horse-running { animation: trot 550ms ease-in-out infinite; }
+@keyframes trot { 0%, 100% { transform: translateY(0) rotate(-3deg); } 50% { transform: translateY(-4px) rotate(3deg); } }
+button:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px solid #000080; outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .horse-running { animation: none; } }

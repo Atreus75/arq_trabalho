@@ -1,21 +1,15 @@
-CC = gcc
-CFLAGS = -Wall -Wextra -pedantic -std=c99
-BIN_DIR = bin
-SIM_DIR = simulator
+CC = cc
+CFLAGS = -std=c11 -Wall -Wextra -Wpedantic -O2
+SRC = $(wildcard simulator/src/*.c)
+HEADERS = $(wildcard simulator/src/*.h)
 
-all: directories $(BIN_DIR)/assembler $(BIN_DIR)/simulator
-
-directories:
-	@mkdir -p $(BIN_DIR)
-
-$(BIN_DIR)/assembler: $(SIM_DIR)/assembler.c $(SIM_DIR)/assembler.h
-	$(CC) $(CFLAGS) $(SIM_DIR)/assembler.c -o $(BIN_DIR)/assembler
-
-$(BIN_DIR)/simulator: $(SIM_DIR)/simulator.c $(SIM_DIR)/simulator.h
-	$(CC) $(CFLAGS) -c $(SIM_DIR)/simulator.c -o $(BIN_DIR)/simulator.o
-
+.PHONY: all clean frontend
+all: bin/mic1-local
+bin/mic1-local: $(SRC) $(HEADERS)
+	mkdir -p bin
+	$(CC) $(CFLAGS) -I simulator/src $(SRC) -pthread -lm -o $@
+	cp -f bin/mic1-local bin/mic1-linux-x64
 clean:
-	rm -rf $(BIN_DIR)
-
-.PHONY: all directories clean
-
+	rm -f bin/mic1-local bin/mic1-linux-x64
+frontend:
+	cd frontend && npm ci && npm run build
