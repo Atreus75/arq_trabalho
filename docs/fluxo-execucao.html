@@ -1,0 +1,1430 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MIC-1.sim — Diagrama de Fluxo de Execução (Apresentação)</title>
+  <style>
+    :root {
+      --bg-main: #0f172a;
+      --bg-panel: #1e293b;
+      --bg-card: #0f172a;
+      --bg-code: #020617;
+      --border: #334155;
+      --border-active: #38bdf8;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent-ui: #38bdf8;
+      --accent-store: #818cf8;
+      --accent-http: #f59e0b;
+      --accent-srv: #34d399;
+      --accent-eng: #f472b6;
+      --badge-bg: rgba(56, 189, 248, 0.15);
+      --shadow-active: 0 0 0 2px #38bdf8, 0 10px 25px -5px rgba(56, 189, 248, 0.35);
+      --font-sans: "Segoe UI", system-ui, -apple-system, sans-serif;
+      --font-mono: "JetBrains Mono", "Fira Code", "Cascadia Code", Consolas, monospace;
+    }
+
+    body.theme-win98 {
+      --bg-main: #008080;
+      --bg-panel: #c0c0c0;
+      --bg-card: #dfdfdf;
+      --bg-code: #ffffff;
+      --border: #808080;
+      --border-active: #000080;
+      --text-main: #000000;
+      --text-muted: #333333;
+      --accent-ui: #000080;
+      --accent-store: #4b0082;
+      --accent-http: #8b4500;
+      --accent-srv: #006400;
+      --accent-eng: #800000;
+      --badge-bg: #d0d8f0;
+      --shadow-active: 0 0 0 3px #000080;
+      --font-sans: "Tahoma", "MS Sans Serif", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-main);
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      min-height: 100vh;
+      padding: 16px 22px;
+      line-height: 1.45;
+      transition: background-color 0.2s ease, color 0.2s ease;
+    }
+
+    /* Cabeçalho */
+    .header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      background: var(--bg-panel);
+      border: 2px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 20px;
+      margin-bottom: 16px;
+    }
+
+    body.theme-win98 .header,
+    body.theme-win98 .panel,
+    body.theme-win98 .stage-col,
+    body.theme-win98 .node-card {
+      border-radius: 0;
+      border-top: 2px solid #ffffff;
+      border-left: 2px solid #ffffff;
+      border-right: 2px solid #404040;
+      border-bottom: 2px solid #404040;
+    }
+
+    .title-group h1 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .title-badge {
+      font-size: 0.75rem;
+      padding: 3px 10px;
+      border-radius: 999px;
+      background: var(--badge-bg);
+      color: var(--accent-ui);
+      border: 1px solid var(--accent-ui);
+      font-weight: 600;
+    }
+
+    .title-group p {
+      font-size: 0.86rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .tab-btn, .action-btn {
+      background: var(--bg-card);
+      color: var(--text-main);
+      border: 1px solid var(--border);
+      padding: 8px 14px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      font-family: inherit;
+    }
+
+    body.theme-win98 .tab-btn,
+    body.theme-win98 .action-btn {
+      border-radius: 0;
+      background: #c0c0c0;
+      border-top: 2px solid #ffffff;
+      border-left: 2px solid #ffffff;
+      border-right: 2px solid #404040;
+      border-bottom: 2px solid #404040;
+    }
+
+    .tab-btn:hover, .action-btn:hover {
+      border-color: var(--border-active);
+    }
+
+    .tab-btn.active {
+      background: var(--accent-ui);
+      color: #020617;
+      border-color: var(--accent-ui);
+    }
+
+    body.theme-win98 .tab-btn.active {
+      background: #000080;
+      color: #ffffff;
+    }
+
+    /* Seções / Abas */
+    .tab-view {
+      display: none;
+    }
+    .tab-view.active {
+      display: block;
+    }
+
+    .panel {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+
+    /* Barra de Controle do Simulador de Fluxo */
+    .controls-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .scenario-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .scenario-label {
+      font-size: 0.82rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-right: 4px;
+    }
+
+    .scenario-btn {
+      background: var(--bg-card);
+      color: var(--text-main);
+      border: 1px solid var(--border);
+      padding: 7px 12px;
+      border-radius: 6px;
+      font-size: 0.83rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .scenario-btn.active {
+      border-color: var(--accent-http);
+      box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.35);
+      background: rgba(245, 158, 11, 0.14);
+    }
+
+    body.theme-win98 .scenario-btn.active {
+      background: #000080;
+      color: #ffffff;
+      box-shadow: none;
+    }
+
+    .step-nav {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .step-pills {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      margin: 0 6px;
+    }
+
+    .step-pill {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      background: var(--bg-card);
+      color: var(--text-muted);
+      font-size: 0.78rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .step-pill.done {
+      border-color: var(--accent-srv);
+      color: var(--accent-srv);
+    }
+
+    .step-pill.current {
+      background: var(--accent-ui);
+      color: #020617;
+      border-color: var(--accent-ui);
+      transform: scale(1.12);
+    }
+
+    body.theme-win98 .step-pill.current {
+      background: #000080;
+      color: #ffffff;
+    }
+
+    /* Pipeline Grid (5 Colunas) */
+    .pipeline-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 12px;
+      align-items: stretch;
+      margin-bottom: 16px;
+    }
+
+    @media (max-width: 1180px) {
+      .pipeline-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .stage-col {
+      background: rgba(15, 23, 42, 0.55);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      position: relative;
+      transition: all 0.2s ease;
+    }
+
+    body.theme-win98 .stage-col {
+      background: #d4d0c8;
+    }
+
+    .stage-header {
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      padding-bottom: 8px;
+      border-bottom: 2px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .col-ui .stage-header { border-color: var(--accent-ui); color: var(--accent-ui); }
+    .col-store .stage-header { border-color: var(--accent-store); color: var(--accent-store); }
+    .col-http .stage-header { border-color: var(--accent-http); color: var(--accent-http); }
+    .col-srv .stage-header { border-color: var(--accent-srv); color: var(--accent-srv); }
+    .col-eng .stage-header { border-color: var(--accent-eng); color: var(--accent-eng); }
+
+    .node-card {
+      background: var(--bg-card);
+      border: 1.5px solid var(--border);
+      border-radius: 7px;
+      padding: 10px 11px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      position: relative;
+    }
+
+    .node-card:hover {
+      border-color: var(--border-active);
+    }
+
+    .node-card.active-node {
+      border-color: var(--border-active);
+      box-shadow: var(--shadow-active);
+      transform: translateY(-2px);
+      background: rgba(56, 189, 248, 0.12);
+    }
+
+    body.theme-win98 .node-card.active-node {
+      background: #ffffcc;
+    }
+
+    .node-card.visited-node {
+      border-color: rgba(52, 211, 153, 0.65);
+    }
+
+    .node-title {
+      font-size: 0.88rem;
+      font-weight: 700;
+      margin-bottom: 3px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+    }
+
+    .node-file {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: var(--accent-ui);
+      background: rgba(56, 189, 248, 0.1);
+      padding: 1px 6px;
+      border-radius: 4px;
+      display: inline-block;
+      margin-bottom: 5px;
+    }
+
+    body.theme-win98 .node-file {
+      background: #e0e0e0;
+      color: #000080;
+    }
+
+    .node-desc {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    .step-tag {
+      font-size: 0.68rem;
+      font-weight: 800;
+      padding: 1px 7px;
+      border-radius: 99px;
+      background: var(--accent-ui);
+      color: #020617;
+      display: none;
+    }
+
+    body.theme-win98 .step-tag {
+      background: #000080;
+      color: #ffffff;
+    }
+
+    .node-card.active-node .step-tag {
+      display: inline-block;
+    }
+
+    /* Painel de Detalhes do Passo Atual */
+    .inspector-grid {
+      display: grid;
+      grid-template-columns: 1.15fr 1fr;
+      gap: 16px;
+      background: var(--bg-card);
+      border: 2px solid var(--border-active);
+      border-radius: 8px;
+      padding: 16px;
+    }
+
+    @media (max-width: 960px) {
+      .inspector-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .inspector-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .inspector-step-num {
+      background: var(--accent-ui);
+      color: #020617;
+      font-weight: 800;
+      font-size: 0.85rem;
+      padding: 4px 11px;
+      border-radius: 6px;
+    }
+
+    body.theme-win98 .inspector-step-num {
+      background: #000080;
+      color: #ffffff;
+    }
+
+    .inspector-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+    }
+
+    .inspector-body p {
+      font-size: 0.94rem;
+      margin-bottom: 10px;
+      line-height: 1.55;
+    }
+
+    .meta-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 0.84rem;
+      background: rgba(255, 255, 255, 0.03);
+      padding: 10px 12px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+    }
+
+    .meta-row strong {
+      color: var(--accent-ui);
+      margin-right: 6px;
+    }
+
+    .code-box {
+      background: var(--bg-code);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px;
+      font-family: var(--font-mono);
+      font-size: 0.79rem;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      color: #e2e8f0;
+      max-height: 230px;
+      overflow-y: auto;
+    }
+
+    body.theme-win98 .code-box {
+      color: #000000;
+      border: 2px inset #808080;
+    }
+
+    .code-box-title {
+      font-size: 0.74rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: var(--accent-http);
+      margin-bottom: 6px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    /* Aba 2: Tabela de Mapeamento Completa */
+    .mapping-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.83rem;
+      margin-top: 8px;
+    }
+
+    .mapping-table th,
+    .mapping-table td {
+      border: 1px solid var(--border);
+      padding: 9px 11px;
+      text-align: left;
+    }
+
+    .mapping-table th {
+      background: var(--bg-card);
+      color: var(--accent-ui);
+      font-weight: 700;
+    }
+
+    .mapping-table tr:nth-child(even) {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .mapping-table code {
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      background: rgba(56, 189, 248, 0.12);
+      padding: 2px 5px;
+      border-radius: 4px;
+    }
+
+    body.theme-win98 .mapping-table code {
+      background: #e8e8e8;
+      color: #000080;
+    }
+
+    /* Aba 3: 4 Subciclos do Motor C */
+    .subcycles-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin: 14px 0;
+    }
+
+    @media (max-width: 1024px) {
+      .subcycles-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    .subcycle-card {
+      background: var(--bg-card);
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      padding: 14px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .subcycle-card.active {
+      border-color: var(--accent-eng);
+      box-shadow: 0 0 0 2px var(--accent-eng);
+    }
+
+    .subcycle-badge {
+      display: inline-block;
+      font-size: 0.75rem;
+      font-weight: 800;
+      padding: 2px 9px;
+      border-radius: 99px;
+      background: rgba(244, 114, 182, 0.18);
+      color: var(--accent-eng);
+      margin-bottom: 8px;
+    }
+
+    .subcycle-card h3 {
+      font-size: 0.98rem;
+      margin-bottom: 6px;
+    }
+
+    .subcycle-card ul {
+      padding-left: 16px;
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .kbd-hint {
+      font-size: 0.76rem;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    kbd {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1px 6px;
+      font-family: var(--font-mono);
+      font-size: 0.73rem;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- CABEÇALHO -->
+  <header class="header">
+    <div class="title-group">
+      <h1>
+        <span>⚙️ MIC-1.sim — Fluxo de Execução de um Programa</span>
+        <span class="title-badge">React/TS ↔ HTTP JSON ↔ Motor C11</span>
+      </h1>
+      <p>Arquitetura Cliente-Servidor Stateless: Interface Win98 → Zustand → Fetch HTTP → Servidor Socket C → Montador, Caminho de Dados (4 Subciclos) e Cache</p>
+    </div>
+    <div class="top-actions">
+      <button class="tab-btn active" onclick="switchTab('tab-flow', this)">1. Fluxo Passo a Passo (Vídeo)</button>
+      <button class="tab-btn" onclick="switchTab('tab-subcycles', this)">2. Os 4 Subciclos no Motor C</button>
+      <button class="tab-btn" onclick="switchTab('tab-table', this)">3. Tabela de Rotas &amp; Módulos</button>
+      <button class="action-btn" onclick="toggleTheme()" id="themeBtn">🪟 Tema Win98</button>
+    </div>
+  </header>
+
+  <!-- ABA 1: SIMULADOR PASSO A PASSO DO FLUXO -->
+  <section id="tab-flow" class="tab-view active">
+    <div class="panel">
+      <div class="controls-bar">
+        <div class="scenario-group">
+          <span class="scenario-label">Cenário:</span>
+          <button class="scenario-btn active" onclick="selectScenario('assemble', this)">
+            1️⃣ Montar Código (POST /api/assemble)
+          </button>
+          <button class="scenario-btn" onclick="selectScenario('init', this)">
+            2️⃣ Gravar na MP &amp; Iniciar (POST /api/sim/init)
+          </button>
+          <button class="scenario-btn" onclick="selectScenario('step', this)">
+            3️⃣ Executar Passo/Ciclo (POST /api/sim/step-*)
+          </button>
+          <button class="scenario-btn" onclick="selectScenario('cache', this)">
+            4️⃣ Configurar Cache (POST /api/sim/cache-config)
+          </button>
+        </div>
+
+        <div class="step-nav">
+          <button class="action-btn" onclick="firstStep()" title="Voltar ao início">⏮ Início</button>
+          <button class="action-btn" onclick="prevStep()" title="Passo anterior (Seta Esquerda)">◀ Anterior</button>
+          <div class="step-pills" id="stepPills"></div>
+          <button class="action-btn" onclick="nextStep()" title="Próximo passo (Seta Direita ou Espaço)" style="border-color: var(--accent-ui); font-weight: 700;">Próximo Passo ▶</button>
+          <button class="action-btn" onclick="toggleAutoPlay()" id="autoPlayBtn">▶ Auto</button>
+        </div>
+      </div>
+
+      <!-- DIAGRAMA DE 5 COLUNAS -->
+      <div class="pipeline-grid">
+        <!-- COLUNA 1: INTERFACE REACT -->
+        <div class="stage-col col-ui">
+          <div class="stage-header">
+            <span>1. Interface React (UI)</span>
+            <span>Win98</span>
+          </div>
+          <div class="node-card" id="node-editor" onclick="jumpToNodeStep('node-editor')">
+            <div class="node-title">
+              <span>1 - Editor.asm</span>
+              <span class="step-tag">ATIVO</span>
+            </div>
+            <span class="node-file">components/EditorPanel.tsx</span>
+            <p class="node-desc">Editor Assembly MAC-1, botões <b>Montar</b>, <b>Gravar código na MP</b>, <b>Montar e iniciar</b>, Tabela de Símbolos e Binário.</p>
+          </div>
+
+          <div class="node-card" id="node-processor" onclick="jumpToNodeStep('node-processor')">
+            <div class="node-title">
+              <span>2 - Processador</span>
+              <span class="step-tag">ATIVO</span>
+            </div>
+            <span class="node-file">ProcessorPanel.tsx / InternalPanel.tsx</span>
+            <p class="node-desc">Contadores de Ciclos e Tempo (ms), 11 Registradores, Controles de Passo/Clock, Breakpoint e Caminho de Dados Interno.</p>
+          </div>
+
+          <div class="node-card" id="node-memory" onclick="jumpToNodeStep('node-memory')">
+            <div class="node-title">
+              <span>3 - Memória &amp; Cache</span>
+              <span class="step-tag">ATIVO</span>
+            </div>
+            <span class="node-file">components/MemoryPanel.tsx</span>
+            <p class="node-desc">Memória Principal (4096 palavras com destaque de <code>PC</code> e Pilha <code>&gt;= SP</code>) e Aba Cache (Hit/Miss, linhas e políticas).</p>
+          </div>
+        </div>
+
+        <!-- COLUNA 2: ESTADO & CLIENTE HTTP -->
+        <div class="stage-col col-store">
+          <div class="stage-header">
+            <span>2. Estado &amp; Cliente</span>
+            <span>TS</span>
+          </div>
+          <div class="node-card" id="node-store" onclick="jumpToNodeStep('node-store')">
+            <div class="node-title">
+              <span>Zustand Store</span>
+              <span class="step-tag">ATIVO</span>
+            </div>
+            <span class="node-file">store/mic1Store.ts</span>
+            <p class="node-desc">Guarda <code>codigoFonte</code>, <code>resultadoMontagem</code>, <code>estadoCpu</code>, <code>estadoCache</code>, <code>_timer</code> (clock) e <code>breakpoint</code>.</p>
+          </div>
+
+          <div class="node-card" id="node-client" onclick="jumpToNodeStep('node-client')">
+            <div class="node-title">
+              <span>Cliente Fetch HTTP</span>
+              <span class="step-tag">ATIVO</span>
+            </div>
+            <span class="node-file">api/client.ts</span>
+            <p class="node-desc">Funções <code>postJson()</code>, <code>assembleProgram()</code>, <code>simInit()</code>, <code>simStepMicro()</code>, <code>simStepMacro()</code>, <code>simStepSubcycle()</code>.</p>
+          </div>
+        </div>
+
+        <!-- COLUNA 3: TRANSPORTE HTTP LOOPBACK -->
+        <div class="stage-col col-http">
+          <div class="stage-header">
+            <span>3. Rede Local HTTP</span>
+            <span>127.0.0.1:3001</span>
+          </div>
+          <div class="node-card" id="node-http-req" onclick="jumpToNodeStep('node-http-req')">
+            <div class="node-title">
+              <span>📤 Requisição POST</span>
+              <span class="step-tag">IDA</span>
+            </div>
+            <span class="node-file">HTTP/1.1 application/json</span>
+            <p class="node-desc">Envia payload JSON stateless (<code>{ sourceCode }</code>, <code>{ program }</code> ou <code>{ state, cache }</code>) para <code>/api/*</code>.</p>
+          </div>
+
+          <div class="node-card" id="node-http-res" onclick="jumpToNodeStep('node-http-res')">
+            <div class="node-title">
+              <span>📥 Resposta 200 OK</span>
+              <span class="step-tag">VOLTA</span>
+            </div>
+            <span class="node-file">HTTP/1.1 application/json</span>
+            <p class="node-desc">Devolve JSON completo com <code>{ ok: true, state: Mic1CpuState, cache: Mic1CacheState }</code> ou <code>AssembleResult</code>.</p>
+          </div>
+        </div>
+
+        <!-- COLUNA 4: SERVIDOR & PROTOCOLO C -->
+        <div class="stage-col col-srv">
+          <div class="stage-header">
+            <span>4. Servidor &amp; Protocolo</span>
+            <span>C11</span>
+          </div>
+          <div class="node-card" id="node-server" onclick="jumpToNodeStep('node-server')">
+            <div class="node-title">
+              <span>Servidor HTTP Socket</span>
+              <span class="step-tag">ATIVO</span>
+            </div>
+            <span class="node-file">simulator/src/server.c</span>
+            <p class="node-desc"><code>serve_local()</code> e <code>handle()</code>: aceita socket TCP local, valida <code>Host</code>/<code>Origin</code>, lê <code>Content-Length</code> e chama protocolo.</p>
+          </div>
+
+          <div class="node-card" id="node-protocol" onclick="jumpToNodeStep('node-protocol')">
+            <div class="node-title">
+              <span>Despachante &amp; JSON</span>
+              <span class="step-tag">ATIVO</span>
+            </div>
+            <span class="node-file">protocol.c &amp; json.c</span>
+            <p class="node-desc"><code>protocol_request()</code>: faz parse do JSON, reconstrói structs C (<code>state_read</code> / <code>cache_from_json</code>) e serializa resposta (<code>state_json</code>).</p>
+          </div>
+        </div>
+
+        <!-- COLUNA 5: MOTOR DO SIMULADOR EM C -->
+        <div class="stage-col col-eng">
+          <div class="stage-header">
+            <span>5. Motor do Hardware</span>
+            <span>C11</span>
+          </div>
+          <div class="node-card" id="node-assembler" onclick="jumpToNodeStep('node-assembler')">
+            <div class="node-title">
+              <span>Montador 2 Passos</span>
+              <span class="step-tag">ATIVO</span>
+            </div>
+            <span class="node-file">assembler.c &amp; isa.c</span>
+            <p class="node-desc"><code>mic1_assemble()</code>: separa tabelas <code>flags</code> (rótulos <code>:</code>) e <code>vars</code> (variáveis) e codifica as 23 instruções MAC-1.</p>
+          </div>
+
+          <div class="node-card" id="node-datapath" onclick="jumpToNodeStep('node-datapath')">
+            <div class="node-title">
+              <span>Caminho de Dados MIC-1</span>
+              <span class="step-tag">ATIVO</span>
+            </div>
+            <span class="node-file">mic1.c &amp; microcode.c</span>
+            <p class="node-desc">Executa exclusivamente a ROM de 79 palavras (32 bits) em 4 subciclos: <code>S1 (MIR)</code>, <code>S2 (A/B/AMUX)</code>, <code>S3 (ULA/SH)</code>, <code>S4 (Regs/MPC)</code>.</p>
+          </div>
+
+          <div class="node-card" id="node-cache" onclick="jumpToNodeStep('node-cache')">
+            <div class="node-title">
+              <span>Subsistema Cache &amp; MP</span>
+              <span class="step-tag">ATIVO</span>
+            </div>
+            <span class="node-file">simulator/src/cache.c</span>
+            <p class="node-desc">MP de 4096 palavras + Cache (Direto, Associativo por Conjunto/Total, LRU/FIFO, Write-Through/Write-Back) no 2º ciclo RD/WR.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- PAINEL INSPETOR DO PASSO ATUAL -->
+      <div class="inspector-grid">
+        <div class="inspector-body">
+          <div class="inspector-header">
+            <span class="inspector-step-num" id="inspStepNum">PASSO 1 / 7</span>
+            <h2 class="inspector-title" id="inspTitle">Título do Passo</h2>
+          </div>
+          <p id="inspDesc">Descrição detalhada da etapa.</p>
+          <div class="meta-list">
+            <div class="meta-row"><strong>Arquivo / Módulo:</strong> <span id="inspFile"></span></div>
+            <div class="meta-row"><strong>Função Executada:</strong> <span id="inspFunc"></span></div>
+            <div class="meta-row"><strong>Direção do Fluxo:</strong> <span id="inspDir"></span></div>
+          </div>
+          <div class="kbd-hint" style="margin-top: 10px;">
+            <span>💡 Dica para o vídeo: Use as teclas</span>
+            <kbd>←</kbd> <kbd>→</kbd> <span>ou</span> <kbd>Espaço</kbd>
+            <span>para avançar os passos enquanto explica.</span>
+          </div>
+        </div>
+
+        <div>
+          <div class="code-box-title">
+            <span id="inspCodeTitle">PAYLOAD HTTP / CÓDIGO EXECUTADO</span>
+            <span id="inspRouteBadge" style="font-family: var(--font-mono);"></span>
+          </div>
+          <pre class="code-box" id="inspCode"></pre>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ABA 2: OS 4 SUBCICLOS DO MOTOR C -->
+  <section id="tab-subcycles" class="tab-view">
+    <div class="panel">
+      <h2 style="font-size: 1.15rem; margin-bottom: 6px;">Dentro do Motor C (`simulator/src/mic1.c`): Os 4 Subciclos do Caminho de Dados</h2>
+      <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 12px;">
+        Quando o servidor C recebe <code>POST /api/sim/step-subcycle</code>, <code>/api/sim/step-micro</code> (4 subciclos) ou <code>/api/sim/step-macro</code> (até <code>MPC == 0, S1</code>), a função <code>subcycle(Mic1State *c)</code> executa o hardware real microprogramado na ROM de 79 palavras (<code>microcode.c</code>):
+      </p>
+
+      <div class="subcycles-grid">
+        <div class="subcycle-card active" onclick="selectSubcycle(0, this)">
+          <span class="subcycle-badge">SUBCICLO 1 (S1)</span>
+          <h3>1. Busca da Microinstrução</h3>
+          <ul>
+            <li>Lê a palavra de 32 bits da Memória de Controle: <code>c-&gt;mir = MIC1_ROM[c-&gt;mpc]</code>.</li>
+            <li>Se <code>c-&gt;mpc == 0</code> (início de macroinstrução), salva <code>c-&gt;endInstrucao = PC &amp; 0x0FFF</code>.</li>
+            <li>Registra no trace RTL: <code>S1: MIR &lt;- ROM[mpc]</code>.</li>
+          </ul>
+        </div>
+
+        <div class="subcycle-card" onclick="selectSubcycle(1, this)">
+          <span class="subcycle-badge">SUBCICLO 2 (S2)</span>
+          <h3>2. Barramentos A, B e AMUX</h3>
+          <ul>
+            <li>Decodifica campos <code>A</code> (bits 8..11) e <code>B</code> (bits 12..15) do <code>MIR</code> para selecionar entre os 16 registradores.</li>
+            <li>Carrega <code>c-&gt;latchA = R[A]</code> e <code>c-&gt;latchB = R[B]</code>.</li>
+            <li>Multiplexador <code>AMUX</code> (bit 31): escolhe <code>c-&gt;ulaA = AMUX ? c-&gt;mbrLeitura : c-&gt;latchA</code>.</li>
+          </ul>
+        </div>
+
+        <div class="subcycle-card" onclick="selectSubcycle(2, this)">
+          <span class="subcycle-badge">SUBCICLO 3 (S3)</span>
+          <h3>3. ULA, Flags N/Z e Deslocador</h3>
+          <ul>
+            <li>Campo <code>ALU</code> (bits 27..28): executa <code>0: ulaA + latchB</code>, <code>1: ulaA &amp; latchB</code>, <code>2: ulaA</code> ou <code>3: ~ulaA</code>.</li>
+            <li>Atualiza flags <code>N</code> (bit 15 da saída da ULA) e <code>Z</code> (<code>saidaUla == 0</code>) <b>antes</b> do deslocador.</li>
+            <li>Campo <code>SH</code> (bits 25..26): <code>0: sem deslocamento</code>, <code>1: &gt;&gt; 1 aritmético</code> (preserva bit 15), <code>2: &lt;&lt; 1</code>.</li>
+          </ul>
+        </div>
+
+        <div class="subcycle-card" onclick="selectSubcycle(3, this)">
+          <span class="subcycle-badge">SUBCICLO 4 (S4)</span>
+          <h3>4. Escrita, Cache/MP e MPC</h3>
+          <ul>
+            <li>Se <code>MAR=1</code>: <code>c-&gt;mar = latchB &amp; 0x0FFF</code>.</li>
+            <li>Se <code>MBR=1</code>: <code>c-&gt;mbrEscrita = saidaDeslocador</code>.</li>
+            <li>Se <code>ENC=1</code>: grava <code>R[C] = saidaDeslocador</code> (protegendo constantes).</li>
+            <li>No 2º ciclo consecutivo de <code>RD</code>/<code>WR</code>, invoca <code>cache_read()</code> ou <code>cache_write()</code>.</li>
+            <li>Avalia <code>COND</code> (bits 29..30) com <code>N</code>/<code>Z</code> para definir <code>MPC = ADDR</code> ou <code>MPC + 1</code>.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="code-box-title" style="margin-top: 12px;">
+        <span id="subcycleCodeTitle">CÓDIGO C REAL EXECUTADO NO SUBCICLO 1 (simulator/src/mic1.c)</span>
+      </div>
+      <pre class="code-box" id="subcycleCode" style="max-height: 290px;"></pre>
+    </div>
+  </section>
+
+  <!-- ABA 3: TABELA DE ROTAS E MÓDULOS -->
+  <section id="tab-table" class="tab-view">
+    <div class="panel">
+      <h2 style="font-size: 1.15rem; margin-bottom: 6px;">Mapeamento Ponta a Ponta: Ação na UI → Zustand → HTTP → Motor C</h2>
+      <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 10px;">
+        Referência rápida de todas as chamadas entre o Frontend React/TypeScript e o Backend C11:
+      </p>
+      <table class="mapping-table">
+        <thead>
+          <tr>
+            <th>Ação na Interface (Win98)</th>
+            <th>Componente React</th>
+            <th>Store Zustand (<code>mic1Store.ts</code>)</th>
+            <th>Cliente HTTP (<code>api/client.ts</code>)</th>
+            <th>Endpoint HTTP (<code>server.c → protocol.c</code>)</th>
+            <th>Função no Motor C</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Clicar em <b>🔨 Montar</b></td>
+            <td><code>EditorPanel.tsx</code></td>
+            <td><code>apenasMontar()</code></td>
+            <td><code>assembleProgram({ sourceCode })</code></td>
+            <td><code>POST /api/assemble</code></td>
+            <td><code>mic1_assemble()</code> (<code>assembler.c</code>)</td>
+          </tr>
+          <tr>
+            <td>Clicar em <b>💾 Gravar código na MP</b></td>
+            <td><code>EditorPanel.tsx</code></td>
+            <td><code>gravarNaMemoria()</code></td>
+            <td><code>simInit(words)</code></td>
+            <td><code>POST /api/sim/init</code></td>
+            <td><code>mic1_init()</code> + <code>cache_init_default()</code></td>
+          </tr>
+          <tr>
+            <td>Clicar em <b>▶ Montar e iniciar</b></td>
+            <td><code>EditorPanel.tsx</code></td>
+            <td><code>montarEIniciar()</code></td>
+            <td><code>assembleProgram()</code> → <code>simInit()</code></td>
+            <td><code>POST /api/assemble</code> → <code>POST /api/sim/init</code></td>
+            <td><code>mic1_assemble()</code> → <code>mic1_init()</code></td>
+          </tr>
+          <tr>
+            <td>Clicar em <b>→ Passo (Subciclo)</b></td>
+            <td><code>ExecutionControls.tsx</code></td>
+            <td><code>_passo("subcycle")</code></td>
+            <td><code>simStepSubcycle(estadoCpu)</code></td>
+            <td><code>POST /api/sim/step-subcycle</code></td>
+            <td><code>state_read()</code> → <code>mic1_step_subcycle()</code></td>
+          </tr>
+          <tr>
+            <td>Clicar em <b>→ Passo (Ciclo)</b></td>
+            <td><code>ExecutionControls.tsx</code></td>
+            <td><code>_passo("cycle")</code></td>
+            <td><code>simStepMicro(estadoCpu)</code></td>
+            <td><code>POST /api/sim/step-micro</code></td>
+            <td><code>state_read()</code> → <code>mic1_step_micro()</code> (4 subciclos)</td>
+          </tr>
+          <tr>
+            <td>Clicar em <b>→ Passo (Instrução)</b></td>
+            <td><code>ExecutionControls.tsx</code></td>
+            <td><code>_passo("instruction")</code></td>
+            <td><code>simStepMacro(estadoCpu)</code></td>
+            <td><code>POST /api/sim/step-macro</code></td>
+            <td><code>state_read()</code> → <code>mic1_step_macro()</code></td>
+          </tr>
+          <tr>
+            <td>Clicar em <b>▶ Executar</b> (Clock contínuo)</td>
+            <td><code>ExecutionControls.tsx</code></td>
+            <td><code>iniciarExecucao()</code> (<code>setInterval</code>)</td>
+            <td>Chama <code>passoSelecionado()</code> a cada <code>pausaMs</code></td>
+            <td><code>POST /api/sim/step-*</code></td>
+            <td>Avança ciclos e checa Breakpoint / <code>END: JUMP END</code></td>
+          </tr>
+          <tr>
+            <td>Clicar em <b>Aplicar Configuração</b> (Aba Cache)</td>
+            <td><code>MemoryPanel.tsx</code></td>
+            <td><code>configurarCache(config)</code></td>
+            <td><code>fetch("/api/sim/cache-config")</code></td>
+            <td><code>POST /api/sim/cache-config</code></td>
+            <td><code>cache_configure()</code> (flush de linhas sujas + geometria)</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <script>
+    const SCENARIOS = {
+      assemble: [
+        {
+          node: "node-editor",
+          title: "1. Usuário aciona '🔨 Montar' no Editor Assembly",
+          desc: "Na Janela '1 - Editor.asm', o usuário escreve ou seleciona um programa Assembly MAC-1 (como Fibonacci ou Soma) e clica no botão '🔨 Montar' (ou '▶ Montar e iniciar').",
+          file: "frontend/src/components/EditorPanel.tsx",
+          func: "onClick -> apenasMontar() / montarEIniciar()",
+          dir: "Usuário → Componente React (EditorPanel)",
+          route: "UI Event",
+          codeTitle: "CÓDIGO ASSEMBLY NO EDITOR (EXEMPLO SOMA)",
+          code: `LODD var1\nADDD var2\nSTOD var3\nEND: JUMP END\nvar1: 10\nvar2: 25`
+        },
+        {
+          node: "node-store",
+          title: "2. Zustand Store prepara o estado de montagem",
+          desc: "A action 'apenasMontar()' pausa qualquer timer ativo, incrementa o contador de geração, marca 'montando: true' na store e lê a string 'codigoFonte' atual.",
+          file: "frontend/src/store/mic1Store.ts",
+          func: "useMic1Store.getState().apenasMontar()",
+          dir: "React Component → Zustand Store",
+          route: "State Action",
+          codeTitle: "TRECHO DE frontend/src/store/mic1Store.ts",
+          code: `apenasMontar: async () => {\n  get().pausar();\n  const codigoFonte = get().codigoFonte;\n  set({ montando: true, resultadoMontagem: null, ultimoErro: null });\n  const resultado = await assembleProgram({ sourceCode: codigoFonte });\n  set({ resultadoMontagem: resultado, montando: false });\n}`
+        },
+        {
+          node: "node-client",
+          title: "3. Cliente HTTP serializa o código-fonte em JSON",
+          desc: "A função 'assembleProgram()' chama 'postJson(\"/assemble\", req)', que executa um fetch() assíncrono com método POST e cabeçalho 'Content-Type: application/json'.",
+          file: "frontend/src/api/client.ts",
+          func: "assembleProgram(req) -> postJson('/assemble', req)",
+          dir: "Zustand Store → Fetch API",
+          route: "POST /api/assemble",
+          codeTitle: "CHAMADA FETCH EM frontend/src/api/client.ts",
+          code: `resposta = await fetch("/api/assemble", {\n  method: "POST",\n  headers: { "Content-Type": "application/json" },\n  body: JSON.stringify({ sourceCode: codigoFonte })\n});`
+        },
+        {
+          node: "node-http-req",
+          title: "4. Pacote HTTP POST trafega via Loopback (127.0.0.1:3001)",
+          desc: "A requisição HTTP/1.1 sai do navegador (ou proxy Vite em dev) para o socket local 127.0.0.1:3001 onde o binário C 'mic1-local' está escutando.",
+          file: "Socket TCP Loopback (127.0.0.1:3001)",
+          func: "HTTP POST /api/assemble",
+          dir: "Browser → Servidor C Local",
+          route: "POST /api/assemble",
+          codeTitle: "REQUISIÇÃO HTTP ENVIADA",
+          code: `POST /api/assemble HTTP/1.1\nHost: 127.0.0.1:3001\nContent-Type: application/json\nContent-Length: 74\n\n{\n  "sourceCode": "LODD var1\\nADDD var2\\nSTOD var3\\nEND: JUMP END\\n"\n}`
+        },
+        {
+          node: "node-server",
+          title: "5. Servidor C recebe o socket e valida segurança local",
+          desc: "Em 'server.c', uma thread dedicada executa 'handle(Socket s)', verifica que Host/Origin pertencem a 127.0.0.1 ou localhost, lê os bytes exatos do Content-Length e repassa para 'protocol_request()'.",
+          file: "simulator/src/server.c & protocol.c",
+          func: "handle() -> protocol_request('/api/assemble', body, &status)",
+          dir: "Socket TCP → Despachante C",
+          route: "server.c -> protocol.c",
+          codeTitle: "DESPACHO EM simulator/src/server.c",
+          code: `else if (!strcmp(metodo, "POST") && hasLength && !strncmp(rota, "/api/", 5)) {\n    int status;\n    char *saida = protocol_request(rota, buf + tamCabecalho, &status);\n    response(s, status, "application/json; charset=utf-8", saida, strlen(saida));\n}`
+        },
+        {
+          node: "node-assembler",
+          title: "6. Montador de 2 Passos em C traduz Assembly para Binário MAC-1",
+          desc: "A função 'mic1_assemble()' faz 2 passagens em memória: no 1º passo separa rótulos de código ('flags' com ':') e variáveis implícitas ('vars', alocadas após o fim do programa); no 2º passo codifica cada instrução em 16 bits.",
+          file: "simulator/src/assembler.c & simulator/src/isa.c",
+          func: "mic1_assemble(codigo, &res) -> mic1_encode()",
+          dir: "protocol.c → assembler.c",
+          route: "Motor C (Assembler)",
+          codeTitle: "ESTRUTURA GERADA PELO MONTADOR C",
+          code: `// Passo 1: flags: END -> end 3 | vars: var1 -> end 4, var2 -> end 5, var3 -> end 6\n// Passo 2: Codificação MAC-1 (16 bits):\n// end 0: LODD 4  -> 0000 0000 0000 0100 (0x0004)\n// end 1: ADDD 5  -> 0010 0000 0000 0101 (0x2005)\n// end 2: STOD 6  -> 0001 0000 0000 0110 (0x1006)\n// end 3: JUMP 3  -> 0110 0000 0000 0011 (0x6003)`
+        },
+        {
+          node: "node-http-res",
+          title: "7. Resposta JSON retorna e atualiza a Janela '1 - Editor.asm'",
+          desc: "'protocol.c' serializa o resultado com 'assemble_json()', o navegador recebe o HTTP 200 OK, o Zustand salva 'resultadoMontagem' e a Janela 1 exibe o código binário de 16 bits e a tabela de símbolos.",
+          file: "simulator/src/protocol.c → frontend/src/components/EditorPanel.tsx",
+          func: "assemble_json() -> HTTP 200 -> set({ resultadoMontagem })",
+          dir: "Servidor C → Zustand → React UI",
+          route: "200 OK JSON",
+          codeTitle: "JSON RETORNADO POR POST /api/assemble",
+          code: `{\n  "success": true,\n  "program": [\n    { "address": 0, "word": 4, "binary": "0000000000000100", "sourceLine": 1, "source": "LODD var1" },\n    { "address": 1, "word": 8197, "binary": "0010000000000101", "sourceLine": 2, "source": "ADDD var2" },\n    { "address": 3, "word": 24579, "binary": "0110000000000011", "sourceLine": 4, "source": "END: JUMP END" }\n  ],\n  "labelTable": [\n    { "label": "END", "address": 3, "kind": "flag" },\n    { "label": "var1", "address": 4, "kind": "var" }\n  ],\n  "errors": []\n}`
+        }
+      ],
+      init: [
+        {
+          node: "node-editor",
+          title: "1. Usuário clica em '💾 Gravar código na MP' (ou '▶ Montar e iniciar')",
+          desc: "Com o programa já montado, o usuário solicita a gravação das palavras binárias na Memória Principal (4096 palavras) para iniciar a simulação.",
+          file: "frontend/src/components/EditorPanel.tsx",
+          func: "gravarNaMemoria() / montarEIniciar()",
+          dir: "Usuário → EditorPanel → Zustand",
+          route: "UI Action",
+          codeTitle: "EXTRAÇÃO DAS PALAVRAS DE 16 BITS",
+          code: `const palavras = resultado.program.map((word) => word.word);\nconst estadoCpu = await simInit(palavras);`
+        },
+        {
+          node: "node-client",
+          title: "2. Cliente HTTP envia o vetor de palavras para /api/sim/init",
+          desc: "A função 'simInit(program)' envia um POST JSON contendo o array numérico de palavras de 16 bits que devem ser carregadas a partir do endereço 0 da Memória Principal.",
+          file: "frontend/src/api/client.ts",
+          func: "simInit(program) -> callSim('/sim/init', { program })",
+          dir: "Zustand → Fetch HTTP",
+          route: "POST /api/sim/init",
+          codeTitle: "PAYLOAD ENVIADO PARA /api/sim/init",
+          code: `POST /api/sim/init HTTP/1.1\nContent-Type: application/json\n\n{\n  "program": [4, 8197, 4102, 24579]\n}`
+        },
+        {
+          node: "node-protocol",
+          title: "3. protocol.c aloca Mic1State e lê o vetor 'program'",
+          desc: "No backend C, 'protocol_request()' aloca uma struct 'Mic1State' limpa, converte o array JSON de inteiros para palavras de 16 bits e chama 'mic1_init()'.",
+          file: "simulator/src/protocol.c",
+          func: "protocol_request() -> array_words() -> mic1_init()",
+          dir: "Servidor C → Roteador de Protocolo",
+          route: "protocol.c",
+          codeTitle: "INICIALIZAÇÃO EM simulator/src/protocol.c",
+          code: `if (!strcmp(rota, "/api/sim/init")) {\n    const JsonValue *p = json_get_array(req, "program");\n    size_t tam = json_array_length(p);\n    mic1_init(c, palavrasSinal, tam);\n}`
+        },
+        {
+          node: "node-datapath",
+          title: "4. mic1_init() inicializa Registradores, Constantes, MP e Cache",
+          desc: "O motor C zera a memória de 4096 palavras, copia o programa para 'memoria[0..tam-1]', posiciona PC = 0, SP = 4096, proxSubciclo = 1, inicializa as constantes da ROM (0, 1, -1, AMASK, SMASK) e reseta a Cache.",
+          file: "simulator/src/mic1.c & simulator/src/cache.c",
+          func: "mic1_init() + cache_init_default()",
+          dir: "protocol.c → mic1.c & cache.c",
+          route: "Motor C",
+          codeTitle: "CÓDIGO EM simulator/src/mic1.c",
+          code: `void mic1_init(Mic1State *cpu, const int16_t *programa, size_t length) {\n    memset(cpu, 0, sizeof(*cpu));\n    cpu->r[R_SP] = 4096; cpu->r[R_ONE] = 1; cpu->r[R_MINUS] = 0xffff;\n    cpu->r[R_AMASK] = 0x0fff; cpu->r[R_SMASK] = 0x00ff;\n    cpu->proxSubciclo = 1;\n    cache_init_default(&cpu->cache);\n    for (size_t i = 0; i < length; i++) cpu->memoria[i] = (uint16_t)programa[i];\n}`
+        },
+        {
+          node: "node-memory",
+          title: "5. Estado inicial retorna e abastece as Janelas 2 (Processador) e 3 (Memória)",
+          desc: "O JSON com 'state' (4096 palavras de MP + 16 registradores) e 'cache' volta para o Zustand. A Janela 2 habilita os botões de execução e a Janela 3 exibe as instruções gravadas e a Cache limpa.",
+          file: "frontend/src/components/ProcessorPanel.tsx & MemoryPanel.tsx",
+          func: "set({ estadoCpu, estadoCache, cpuIniciada: true })",
+          dir: "Servidor C → Zustand → Janelas 2 e 3",
+          route: "200 OK JSON",
+          codeTitle: "ESTADO INICIAL RECEBIDO PELO FRONTEND",
+          code: `{\n  "ok": true,\n  "state": {\n    "pc": 0, "ac": 0, "sp": 4096, "ir": 0, "tir": 0,\n    "mpc": 0, "nextSubcycle": 1, "cycles": 0,\n    "memory": [4, 8197, 4102, 24579, 0, ...]\n  },\n  "cache": { "enabled": true, "mapping": "direct", "stats": { "hitRate": 0 } }\n}`
+        }
+      ],
+      step: [
+        {
+          node: "node-processor",
+          title: "1. Usuário clica em '→ Passo' ou '▶ Executar' na Janela 2 (Processador)",
+          desc: "O usuário escolhe a unidade de passo ('Subciclo', 'Ciclo' ou 'Instrução') e clica em '→ Passo' (ou '▶ Executar', que cria um setInterval disparando passos automaticamente a cada 'pausaMs').",
+          file: "frontend/src/components/ExecutionControls.tsx",
+          func: "passoSelecionado() / iniciarExecucao()",
+          dir: "Usuário → ExecutionControls → Zustand",
+          route: "UI Event",
+          codeTitle: "DISPARO DO PASSO OU TIMER CONTÍNUO",
+          code: `// Passo único:\nonClick={() => void passoSelecionado()}\n\n// Execução contínua (timer):\nconst timer = setInterval(() => {\n  void get().passoSelecionado();\n}, state.pausaMs);`
+        },
+        {
+          node: "node-store",
+          title: "2. Zustand seleciona a rota conforme a unidade de passo",
+          desc: "Em 'mic1Store.ts', o método '_passo(unidade)' lê o 'estadoCpu' atual e escolhe entre 'simStepSubcycle' (1 subciclo), 'simStepMicro' (1 ciclo = 4 subciclos) ou 'simStepMacro' (1 instrução MAC-1 inteira).",
+          file: "frontend/src/store/mic1Store.ts",
+          func: "_passo(unidade: 'subcycle' | 'cycle' | 'instruction')",
+          dir: "Zustand Store → Cliente HTTP",
+          route: "Store Logic",
+          codeTitle: "SELEÇÃO EM frontend/src/store/mic1Store.ts",
+          code: `if (unidade === "instruction") {\n  proximo = await simStepMacro(estadoCpu);\n} else if (unidade === "cycle") {\n  proximo = await simStepMicro(estadoCpu);\n} else {\n  proximo = await simStepSubcycle(estadoCpu);\n}`
+        },
+        {
+          node: "node-http-req",
+          title: "3. Requisição POST Stateless envia o estado completo da CPU e Cache",
+          desc: "Como o backend C é stateless, o frontend envia o objeto 'state' (registradores, latches, MP e estado da Cache) no corpo da requisição HTTP POST.",
+          file: "frontend/src/api/client.ts",
+          func: "POST /api/sim/step-micro (ou step-subcycle / step-macro)",
+          dir: "Frontend → Loopback HTTP → Servidor C",
+          route: "POST /api/sim/step-micro",
+          codeTitle: "CORPO JSON ENVIADO NA REQUISIÇÃO",
+          code: `POST /api/sim/step-micro HTTP/1.1\nHost: 127.0.0.1:3001\nContent-Type: application/json\n\n{\n  "state": {\n    "pc": 0, "ac": 0, "sp": 4096, "mpc": 0, "nextSubcycle": 1,\n    "registers": { "pc": 0, "ac": 0, "sp": 4096, ... },\n    "memory": [4, 8197, 4102, 24579, ...],\n    "cache": { "enabled": true, "lines": [...] }\n  }\n}`
+        },
+        {
+          node: "node-protocol",
+          title: "4. protocol.c desserializa o JSON para structs C (Mic1State + Mic1Cache)",
+          desc: "'protocol_request()' chama 'state_read()' e 'cache_from_json()' para reconstruir fielmente em memória C todos os registradores, sinais pendentes de leitura/escrita, MP e linhas da Cache.",
+          file: "simulator/src/protocol.c",
+          func: "state_read(c, req.state) + cache_from_json(&c->cache, ...)",
+          dir: "server.c → protocol.c",
+          route: "Desserialização C",
+          codeTitle: "RECONSTRUÇÃO DO ESTADO EM simulator/src/protocol.c",
+          code: `valido = state_read(c, json_object_get(req, "state"));\nif (valido) {\n    if (!strcmp(rota, "/api/sim/step-macro")) mic1_step_macro(c);\n    else if (!strcmp(rota, "/api/sim/step-micro")) mic1_step_micro(c);\n    else mic1_step_subcycle(c);\n}`
+        },
+        {
+          node: "node-datapath",
+          title: "5. Motor MIC-1 executa os 4 Subciclos via Memória de Controle ROM",
+          desc: "Em 'mic1.c', a função 'subcycle()' executa: S1 (MIR <- ROM[MPC]), S2 (carrega latches A/B e aplica AMUX), S3 (opera ULA, calcula flags N/Z e aplica deslocador) e S4 (escreve registrador C, MAR, MBR e calcula próximo MPC).",
+          file: "simulator/src/mic1.c & simulator/src/microcode.c",
+          func: "mic1_step_micro(c) -> 4x subcycle(c)",
+          dir: "protocol.c → mic1.c",
+          route: "Caminho de Dados C",
+          codeTitle: "EXECUÇÃO DOS 4 SUBCICLOS EM simulator/src/mic1.c",
+          code: `void mic1_step_micro(Mic1State *cpu) {\n    cpu->qtdHistorico = 0;\n    do {\n        subcycle(cpu);\n    } while (!cpu->parado && cpu->proxSubciclo != 1);\n}`
+        },
+        {
+          node: "node-cache",
+          title: "6. No 2º ciclo consecutivo de RD ou WR, o Caminho de Dados aciona a Cache",
+          desc: "Quando uma microinstrução mantém RD=1 ou WR=1 por 2 ciclos (ex.: busca de instrução 'rd' nas linhas 0 e 1 da ROM), o Subciclo 4 invoca 'cache_read()' ou 'cache_write()', registrando Hit ou Miss, buscando o bloco na MP e atualizando LRU/FIFO e Write-Through/Write-Back.",
+          file: "simulator/src/cache.c",
+          func: "cache_read(&c->cache, endPendente, c->memoria, &hit)",
+          dir: "mic1.c (Subciclo 4) ↔ cache.c",
+          route: "Cache L1 ↔ MP",
+          codeTitle: "INTEGRAÇÃO CAMINHO DE DADOS ↔ CACHE (simulator/src/mic1.c)",
+          code: `if (pedido == 1) { // 2º ciclo consecutivo de RD\n    bool hit = false;\n    c->mbrLeitura = cache_read(&c->cache, c->endPendente, c->memoria, &hit);\n    c->mbr = c->mbrLeitura;\n} else { // 2º ciclo consecutivo de WR\n    bool hit = false;\n    cache_write(&c->cache, c->endPendente, c->valorPendente, c->memoria, &hit);\n}`
+        },
+        {
+          node: "node-http-res",
+          title: "7. Novo estado da CPU + Cache é serializado em JSON e enviado ao Frontend",
+          desc: "'state_json()' e 'cache_json()' serializam todos os 11 registradores visíveis, latches internos, contadores de ciclo, trace RTL e estatísticas/linhas da Cache em uma resposta HTTP 200 OK.",
+          file: "simulator/src/protocol.c",
+          func: "state_json(&w, c) + cache_json(&w, &c->cache)",
+          dir: "Servidor C → HTTP Response → Cliente Fetch",
+          route: "200 OK JSON",
+          codeTitle: "RESPOSTA JSON DE /api/sim/step-micro",
+          code: `{\n  "ok": true,\n  "state": {\n    "pc": 1, "ac": 0, "sp": 4096, "ir": 4, "mar": 0, "mbr": 4,\n    "mbrRead": 4, "mpc": 2, "nextSubcycle": 1, "cycles": 2,\n    "trace": [{ "mpc": 1, "subcycle": 4, "text": "S4: IR <- 4; rd concluido (MBR <- m[0] = 4)" }]\n  },\n  "cache": {\n    "stats": { "readHits": 0, "readMisses": 1, "hitRate": 0.0 },\n    "lastAccess": { "hasAccess": true, "event": "READ MISS", "address": 0, "hit": false }\n  }\n}`
+        },
+        {
+          node: "node-processor",
+          title: "8. Zustand verifica Breakpoint e React re-renderiza as Janelas 2 e 3",
+          desc: "A store atualiza 'estadoCpu' e 'estadoCache', verifica se 'PC == breakpoint' (pausa automática de disparo único) ou se o programa terminou ('END: JUMP END'), e o React atualiza instantaneamente os 11 registradores, caminho de dados, pilha na MP e tabela da Cache.",
+          file: "frontend/src/store/mic1Store.ts & ProcessorPanel.tsx & MemoryPanel.tsx",
+          func: "set({ estadoCpu: proximo, estadoCache: proximo.cache })",
+          dir: "Zustand Store → Componentes React (Janelas 2 e 3)",
+          route: "UI Re-render",
+          codeTitle: "VERIFICAÇÃO DE BREAKPOINT EM frontend/src/store/mic1Store.ts",
+          code: `if (proximo.halted) {\n  get().pausar();\n} else if (get().modoExecucao !== "idle" && get().breakpoint !== null && !get().breakpointAtivado) {\n  if ((proximo.pc & 4095) === get().breakpoint) {\n    get().pausar();\n    set({ breakpointAtivado: true, motivoPausa: \`Pausa no endereço \${proximo.pc} (Breakpoint atingido).\` });\n  }\n}`
+        }
+      ],
+      cache: [
+        {
+          node: "node-memory",
+          title: "1. Usuário altera parâmetros na Aba 'Cache' e clica em 'Aplicar Configuração'",
+          desc: "Na Janela '3 - Memória' (aba Cache), o usuário escolhe Mapeamento (Direto, Associativo por Conjunto ou Totalmente Associativo), Substituição (LRU/FIFO), Escrita (Write-Through/Write-Back), tamanho do bloco e capacidade.",
+          file: "frontend/src/components/MemoryPanel.tsx",
+          func: "configurarCache(config)",
+          dir: "Usuário → MemoryPanel → Zustand",
+          route: "UI Event",
+          codeTitle: "PARÂMETROS ENVIADOS PELA ABA CACHE",
+          code: `configurarCache({\n  enabled: true,\n  mapping: "set",\n  numWays: 2,\n  replacement: "lru",\n  writePolicy: "write-back",\n  capacityWords: 64,\n  blockSizeWords: 4\n});`
+        },
+        {
+          node: "node-http-req",
+          title: "2. POST /api/sim/cache-config envia estado atual + nova configuração",
+          desc: "A store envia o 'estadoCpu' atual (para preservar a Memória Principal e permitir flush de linhas sujas) junto com o objeto 'config'.",
+          file: "frontend/src/store/mic1Store.ts",
+          func: "fetch('/api/sim/cache-config', { method: 'POST', body })",
+          dir: "Frontend → Servidor C",
+          route: "POST /api/sim/cache-config",
+          codeTitle: "REQUISIÇÃO HTTP POST /api/sim/cache-config",
+          code: `POST /api/sim/cache-config HTTP/1.1\nContent-Type: application/json\n\n{\n  "state": { ... },\n  "config": {\n    "enabled": true, "mapping": "set", "numWays": 2,\n    "replacement": "lru", "writePolicy": "write-back",\n    "capacityWords": 64, "blockSizeWords": 4\n  }\n}`
+        },
+        {
+          node: "node-cache",
+          title: "3. cache_configure() faz flush de blocos sujos e recalcula conjuntos e vias",
+          desc: "Em 'cache.c', 'cache_configure()' valida potências de 2, descarrega para a Memória Principal quaisquer linhas com 'sujo == 1' (Write-Back), recalcula 'numConjuntos' e 'numVias', e reinicia as linhas da Cache.",
+          file: "simulator/src/cache.c & simulator/src/protocol.c",
+          func: "cache_configure(&c->cache, &cfg, c->memoria)",
+          dir: "protocol.c → cache.c",
+          route: "Motor Cache C",
+          codeTitle: "RECONFIGURAÇÃO E FLUSH EM simulator/src/cache.c",
+          code: `bool cache_configure(Mic1Cache *cache, const Mic1CacheConfig *novaConfig, uint16_t *memoria) {\n    if (memoria) {\n        cache_flush(cache, memoria); // Garante coerência de linhas sujas (Write-Back)\n    }\n    cache->config = *novaConfig;\n    cache_reset(cache);\n    return true;\n}`
+        },
+        {
+          node: "node-http-res",
+          title: "4. Nova geometria da Cache retorna e atualiza a tabela de conjuntos/vias",
+          desc: "O backend devolve o novo estado da CPU (com MP atualizada pelo flush) e da Cache, e a Janela 3 passa a exibir imediatamente a nova organização de conjuntos, vias e tags.",
+          file: "frontend/src/components/MemoryPanel.tsx",
+          func: "set({ estadoCpu: dados.state, estadoCache: dados.cache })",
+          dir: "Servidor C → Zustand → MemoryPanel",
+          route: "200 OK JSON",
+          codeTitle: "RESPOSTA JSON COM A NOVA GEOMETRIA DA CACHE",
+          code: `{\n  "ok": true,\n  "cache": {\n    "enabled": true,\n    "mapping": "set",\n    "replacement": "lru",\n    "writePolicy": "write-back",\n    "capacityWords": 64,\n    "blockSizeWords": 4,\n    "numSets": 8,\n    "numWays": 2\n  }\n}`
+        }
+      ]
+    };
+
+    const SUBCYCLE_CODES = [
+      {
+        title: "CÓDIGO C REAL EXECUTADO NO SUBCICLO 1 (simulator/src/mic1.c)",
+        code: `if (sub == 1) {\n    if (c->mpc >= (unsigned)MIC1_ROM_USED) { fail(c, "MPC fora do microprograma."); return; }\n    if (c->mpc == 0) c->endInstrucao = c->r[R_PC] & MIC1_ADDR_MASK;\n    c->endMicroAtual = c->mpc;\n    c->mir = MIC1_ROM[c->mpc];\n    snprintf(evento, sizeof(evento), "S1: MIR <- ROM[%u]", c->mpc);\n}`
+      },
+      {
+        title: "CÓDIGO C REAL EXECUTADO NO SUBCICLO 2 (simulator/src/mic1.c)",
+        code: `else if (sub == 2) {\n    c->latchA = c->r[field(c->mir, 8, 15)];\n    c->latchB = c->r[field(c->mir, 12, 15)];\n    c->ulaA = field(c->mir, 31, 1) ? c->mbrLeitura : c->latchA;\n    snprintf(evento, sizeof(evento), "S2: A <- %s; B <- %s; AMUX = %s",\n        MIC1_REGISTER_NAMES[field(c->mir, 8, 15)],\n        MIC1_REGISTER_NAMES[field(c->mir, 12, 15)],\n        field(c->mir, 31, 1) ? "MBR" : "A");\n}`
+      },
+      {
+        title: "CÓDIGO C REAL EXECUTADO NO SUBCICLO 3 (simulator/src/mic1.c)",
+        code: `else if (sub == 3) {\n    switch (field(c->mir, 27, 3)) {\n        case 0: c->saidaUla = (uint16_t)((uint32_t)c->ulaA + c->latchB); break;\n        case 1: c->saidaUla = c->ulaA & c->latchB; break;\n        case 2: c->saidaUla = c->ulaA; break;\n        case 3: c->saidaUla = (uint16_t)~c->ulaA; break;\n    }\n    /* N e Z pertencem a saida da ULA ANTES do deslocador. */\n    c->negativo = (c->saidaUla & 0x8000) != 0;\n    c->zero = c->saidaUla == 0;\n    switch (field(c->mir, 25, 3)) {\n        case 0: c->saidaDeslocador = c->saidaUla; break;\n        case 1: c->saidaDeslocador = (c->saidaUla >> 1) | (c->saidaUla & 0x8000); break; /* aritmetico a direita */\n        case 2: c->saidaDeslocador = (uint16_t)((uint32_t)c->saidaUla << 1); break;\n    }\n}`
+      },
+      {
+        title: "CÓDIGO C REAL EXECUTADO NO SUBCICLO 4 (simulator/src/mic1.c)",
+        code: `else { /* Subciclo 4 */\n    unsigned rd = field(c->mir, 22, 1), wr = field(c->mir, 21, 1);\n    if (field(c->mir, 23, 1)) c->mar = c->latchB & MIC1_ADDR_MASK;\n    if (field(c->mir, 24, 1)) { c->mbrEscrita = c->saidaDeslocador; c->mbr = c->saidaDeslocador; }\n    if (field(c->mir, 20, 1)) {\n        unsigned dest = field(c->mir, 16, 15);\n        if (dest < R_ZERO || dest > R_SMASK) c->r[dest] = c->saidaDeslocador;\n    }\n    /* Protocolo de 2 ciclos consecutivos de RD/WR via Cache */\n    if (c->memPendente) {\n        if (pedido == 1) c->mbrLeitura = cache_read(&c->cache, c->endPendente, c->memoria, &hit);\n        else cache_write(&c->cache, c->endPendente, c->valorPendente, c->memoria, &hit);\n        c->memPendente = 0;\n    } else if (pedido) {\n        c->memPendente = pedido; c->endPendente = c->mar; c->valorPendente = c->mbrEscrita;\n    }\n    /* Calculo do proximo MPC (COND: 0=seq, 1=N, 2=Z, 3=incondicional) */\n    c->mpc = desvio ? field(c->mir, 0, 255) : (c->endMicroAtual + 1);\n}`
+      }
+    ];
+
+    let currentScenario = "assemble";
+    let currentStepIndex = 0;
+    let autoPlayTimer = null;
+
+    function renderScenario() {
+      const steps = SCENARIOS[currentScenario];
+      const step = steps[currentStepIndex];
+
+      // Atualiza pílulas de progresso
+      const pillsContainer = document.getElementById("stepPills");
+      pillsContainer.innerHTML = "";
+      steps.forEach((s, idx) => {
+        const pill = document.createElement("button");
+        pill.className = "step-pill" + (idx === currentStepIndex ? " current" : idx < currentStepIndex ? " done" : "");
+        pill.textContent = String(idx + 1);
+        pill.title = s.title;
+        pill.onclick = () => {
+          currentStepIndex = idx;
+          renderScenario();
+        };
+        pillsContainer.appendChild(pill);
+      });
+
+      // Destaca o card ativo e marca os anteriores como visitados
+      const allNodes = document.querySelectorAll(".node-card");
+      allNodes.forEach((card) => {
+        card.classList.remove("active-node", "visited-node");
+      });
+
+      for (let i = 0; i < currentStepIndex; i++) {
+        const prevEl = document.getElementById(steps[i].node);
+        if (prevEl) prevEl.classList.add("visited-node");
+      }
+
+      const activeEl = document.getElementById(step.node);
+      if (activeEl) {
+        activeEl.classList.remove("visited-node");
+        activeEl.classList.add("active-node");
+      }
+
+      // Atualiza painel inspetor
+      document.getElementById("inspStepNum").textContent = `PASSO ${currentStepIndex + 1} / ${steps.length}`;
+      document.getElementById("inspTitle").textContent = step.title;
+      document.getElementById("inspDesc").textContent = step.desc;
+      document.getElementById("inspFile").textContent = step.file;
+      document.getElementById("inspFunc").textContent = step.func;
+      document.getElementById("inspDir").textContent = step.dir;
+      document.getElementById("inspCodeTitle").textContent = step.codeTitle;
+      document.getElementById("inspRouteBadge").textContent = step.route;
+      document.getElementById("inspCode").textContent = step.code;
+    }
+
+    function selectScenario(key, btnEl) {
+      stopAutoPlay();
+      currentScenario = key;
+      currentStepIndex = 0;
+      document.querySelectorAll(".scenario-btn").forEach((b) => b.classList.remove("active"));
+      if (btnEl) btnEl.classList.add("active");
+      renderScenario();
+    }
+
+    function nextStep() {
+      const steps = SCENARIOS[currentScenario];
+      if (currentStepIndex < steps.length - 1) {
+        currentStepIndex++;
+      } else {
+        currentStepIndex = 0;
+      }
+      renderScenario();
+    }
+
+    function prevStep() {
+      const steps = SCENARIOS[currentScenario];
+      if (currentStepIndex > 0) {
+        currentStepIndex--;
+      } else {
+        currentStepIndex = steps.length - 1;
+      }
+      renderScenario();
+    }
+
+    function firstStep() {
+      stopAutoPlay();
+      currentStepIndex = 0;
+      renderScenario();
+    }
+
+    function jumpToNodeStep(nodeId) {
+      const steps = SCENARIOS[currentScenario];
+      const foundIdx = steps.findIndex((s) => s.node === nodeId);
+      if (foundIdx !== -1) {
+        currentStepIndex = foundIdx;
+        renderScenario();
+      }
+    }
+
+    function toggleAutoPlay() {
+      const btn = document.getElementById("autoPlayBtn");
+      if (autoPlayTimer) {
+        stopAutoPlay();
+      } else {
+        btn.textContent = "⏸ Pausar";
+        autoPlayTimer = setInterval(nextStep, 2800);
+      }
+    }
+
+    function stopAutoPlay() {
+      if (autoPlayTimer) {
+        clearInterval(autoPlayTimer);
+        autoPlayTimer = null;
+      }
+      const btn = document.getElementById("autoPlayBtn");
+      if (btn) btn.textContent = "▶ Auto";
+    }
+
+    function switchTab(tabId, btnEl) {
+      stopAutoPlay();
+      document.querySelectorAll(".tab-view").forEach((v) => v.classList.remove("active"));
+      document.querySelectorAll(".tab-btn").forEach((b) => b.classList.remove("active"));
+      document.getElementById(tabId).classList.add("active");
+      if (btnEl) btnEl.classList.add("active");
+    }
+
+    function selectSubcycle(idx, cardEl) {
+      document.querySelectorAll(".subcycle-card").forEach((c) => c.classList.remove("active"));
+      if (cardEl) cardEl.classList.add("active");
+      document.getElementById("subcycleCodeTitle").textContent = SUBCYCLE_CODES[idx].title;
+      document.getElementById("subcycleCode").textContent = SUBCYCLE_CODES[idx].code;
+    }
+
+    function toggleTheme() {
+      const body = document.body;
+      const btn = document.getElementById("themeBtn");
+      body.classList.toggle("theme-win98");
+      if (body.classList.contains("theme-win98")) {
+        btn.textContent = "🌙 Tema Escuro (Vídeo)";
+      } else {
+        btn.textContent = "🪟 Tema Win98";
+      }
+    }
+
+    // Atalhos de teclado para gravação de vídeo
+    window.addEventListener("keydown", (e) => {
+      const activeTab = document.getElementById("tab-flow");
+      if (!activeTab.classList.contains("active")) return;
+      if (e.key === "ArrowRight" || e.key === " ") {
+        e.preventDefault();
+        nextStep();
+      } else if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        prevStep();
+      } else if (e.key === "Home") {
+        e.preventDefault();
+        firstStep();
+      }
+    });
+
+    // Inicialização
+    renderScenario();
+    selectSubcycle(0, document.querySelector(".subcycle-card"));
+  </script>
+</body>
+</html>
