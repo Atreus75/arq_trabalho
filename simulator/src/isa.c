@@ -9,6 +9,13 @@
  * pode mudar sem atualizar mic1_encode/mic1_decode, que usam a posicao
  * numerica do enum Mic1Opcode para calcular os bits diretamente.
  * ------------------------------------------------------------------- */
+
+// x -> operando a seguir pode ser no maximo de 12 bits (0 a 4095 bits)
+// y -> 0 a 255, 8 bits
+// c -> endereço de chamada, de 0 a 1023
+// n -> não aceita operando
+
+
 const Mic1InstrInfo MIC1_ISA_TABLE[OP_COUNT] = {
     { OP_LODD, "LODD", "ac := m[x]",                              'x' },
     { OP_STOD, "STOD", "m[x] := ac",                               'x' },
