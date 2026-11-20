@@ -7,15 +7,19 @@ import { formatInstruction, toBinaryString } from "../types/mic1";
 import { Win98Window } from "./win98/Win98Window";
 import { Win98Sunken } from "./win98/Win98Input";
 
-const signed16 = (n: number) => (n >= 32768 ? n - 65536 : n < -32768 ? n + 65536 : n);
+function comSinal16(n: number) {
+  if (n >= 32768) return n - 65536;
+  if (n < -32768) return n + 65536;
+  return n;
+}
 
-/** Painel do Processador com Ciclos/ms em destaque (F-07) e tabela de 11 registradores (F-16). */
+// Janela 2: registradores e ciclos de execucao
 export function ProcessorPanel() {
-  const cpu = useMic1Store((s) => s.cpuState);
-  const running = useMic1Store((s) => s.runMode !== "idle");
-  const isStepping = useMic1Store((s) => s.isStepping);
-  const executionTimeMs = useMic1Store((s) => s.executionTimeMs);
-  const [showBits, setShowBits] = useState(false);
+  const cpu = useMic1Store((s) => s.estadoCpu);
+  const rodando = useMic1Store((s) => s.modoExecucao !== "idle");
+  const executandoPasso = useMic1Store((s) => s.executandoPasso);
+  const tempoExecucaoMs = useMic1Store((s) => s.tempoExecucaoMs);
+  const [mostrarBits, setMostrarBits] = useState(false);
 
   const status = !cpu
     ? "A simulação ainda não começou"
@@ -23,23 +27,23 @@ export function ProcessorPanel() {
     ? "ERRO"
     : cpu.halted
     ? "ENCERRADO"
-    : running || isStepping
+    : rodando || executandoPasso
     ? "EXECUTANDO"
     : "PRONTO";
 
   const registers = cpu
     ? [
         { name: "PC", value: String(cpu.pc) },
-        { name: "AC", value: String(signed16(cpu.ac)) },
-        { name: "SP", value: String(signed16(cpu.sp)) },
+        { name: "AC", value: String(comSinal16(cpu.ac)) },
+        { name: "SP", value: String(comSinal16(cpu.sp)) },
         { name: "IR", value: toBinaryString(cpu.ir) },
         { name: "TIR", value: toBinaryString(cpu.registers?.[4] ?? 0) },
-        { name: "A", value: String(signed16(cpu.registers?.[10] ?? 0)) },
-        { name: "B", value: String(signed16(cpu.registers?.[11] ?? 0)) },
-        { name: "C", value: String(signed16(cpu.registers?.[12] ?? 0)) },
-        { name: "D", value: String(signed16(cpu.registers?.[13] ?? 0)) },
-        { name: "E", value: String(signed16(cpu.registers?.[14] ?? 0)) },
-        { name: "F", value: String(signed16(cpu.registers?.[15] ?? 0)) },
+        { name: "A", value: String(comSinal16(cpu.registers?.[10] ?? 0)) },
+        { name: "B", value: String(comSinal16(cpu.registers?.[11] ?? 0)) },
+        { name: "C", value: String(comSinal16(cpu.registers?.[12] ?? 0)) },
+        { name: "D", value: String(comSinal16(cpu.registers?.[13] ?? 0)) },
+        { name: "E", value: String(comSinal16(cpu.registers?.[14] ?? 0)) },
+        { name: "F", value: String(comSinal16(cpu.registers?.[15] ?? 0)) },
       ]
     : [];
 
@@ -49,9 +53,8 @@ export function ProcessorPanel() {
       headerRight={<span className="bg-white text-black px-1 text-[10px] font-bold">{status}</span>}
     >
       <div className="p-3 flex flex-col gap-3 h-full min-h-0 overflow-y-auto">
-        {/* Destaque primario em Ciclos e Tempo de Execucao (F-07) */}
         <Win98Sunken className="p-3 flex items-center gap-3">
-          <span className={`horse ${running ? "horse-running" : ""}`} aria-hidden="true">
+          <span className={`horse ${rodando ? "horse-running" : ""}`} aria-hidden="true">
             ♞
           </span>
           <div className="flex-1">
@@ -64,7 +67,7 @@ export function ProcessorPanel() {
               </div>
               <div className="text-right">
                 <p className="font-bold text-[18px] font-mono" data-testid="execution-time">
-                  {executionTimeMs}ms
+                  {tempoExecucaoMs}ms
                 </p>
                 <p className="text-[11px] text-win-faceDarker">Tempo de execução</p>
               </div>
@@ -82,7 +85,6 @@ export function ProcessorPanel() {
           </p>
         ) : (
           <>
-            {/* Tabela dos 11 Registradores com IR e TIR em binario de 16 bits (F-16) */}
             <div className="space-y-1">
               <p className="text-[12px] font-bold">Registradores</p>
               <div className="bg-white shadow-win-in max-h-48 overflow-y-auto">
@@ -106,14 +108,14 @@ export function ProcessorPanel() {
             </div>
 
             <label className="flex items-center gap-2 text-[12px] cursor-pointer">
-              <input type="checkbox" checked={showBits} onChange={(e) => setShowBits(e.target.checked)} /> Mostrar
+              <input type="checkbox" checked={mostrarBits} onChange={(e) => setMostrarBits(e.target.checked)} /> Mostrar
               painel de bits (PC/AC/SP)
             </label>
-            {showBits && (
+            {mostrarBits && (
               <div className="space-y-1.5 border border-win-faceDark p-2 bg-win-faceLight/40">
-                <BitRegister label="PC" value={cpu.pc} bitWidth={16} accent="warn" showBits={true} description="Próxima instrução" />
-                <BitRegister label="AC" value={cpu.ac} showBits={true} description="Acumulador" />
-                <BitRegister label="SP" value={cpu.sp} showBits={true} description="Topo da pilha" />
+                <BitRegister label="PC" value={cpu.pc} bitWidth={16} accent="warn" mostrarBits={true} description="Próxima instrução" />
+                <BitRegister label="AC" value={cpu.ac} mostrarBits={true} description="Acumulador" />
+                <BitRegister label="SP" value={cpu.sp} mostrarBits={true} description="Topo da pilha" />
               </div>
             )}
 

@@ -1,8 +1,4 @@
-/**
- * Win98Button: botão retangular cinza com bevel saliente, que "afunda"
- * (bevel entalhado + desloca o conteúdo 1px) quando pressionado — o
- * comportamento tátil clássico dos botões do Windows 95/98.
- */
+// Botao estilo Win98
 import type { ButtonHTMLAttributes } from "react";
 
 interface Win98ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {

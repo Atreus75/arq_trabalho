@@ -1,4 +1,4 @@
-export const ARRAY_SOURCE = `; Exemplo: "se (i <= n) entao m := a[i]"
+export const CODIGO_ARRAY = `; Exemplo: "se (i <= n) entao m := a[i]"
 ; Mesmo padrao de acesso a array indexado usado em aula.
 ; a[] comeca no endereco 200; i e n sao variaveis em memoria.
 
@@ -22,7 +22,7 @@ export const ARRAY_SOURCE = `; Exemplo: "se (i <= n) entao m := a[i]"
 FIM:    JUMP FIM
 `;
 
-export const EXAMPLES = [
+export const EXEMPLOS = [
   { name: "Soma simples", source: `; 7 + 5 = 12. O resultado fica em m[100].
         LOCO 7
         STOD 100
@@ -44,7 +44,7 @@ DOBRO:  LODL 1       ; argumento, acima do retorno
         ADDL 1
         RETN
 ` },
-  { name: "Array da aula", source: ARRAY_SOURCE },
+  { name: "Array da aula", source: CODIGO_ARRAY },
   { name: "Fibonacci da referência", source: `; Cálculo da referência com variáveis implícitas e término em END: JUMP END.
 ; Os termos ficam na pilha. Pausar no endereço 16 permite ver o final.
 START:LOCO 16

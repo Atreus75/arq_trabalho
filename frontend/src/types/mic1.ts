@@ -1,9 +1,4 @@
-/**
- * Tipos do dominio MIC-1 no front-end.
- * Contrato JSON do motor C -- qualquer mudanca no formato
- * de estado da CPU ou do resultado de montagem precisa ser replicada
- * tambem na serializacao de simulator/src/protocol.c.
- */
+// Tipos do MIC-1 (devem alinhar com protocol.c)
 
 export type CpuPhase = "FETCH" | "EXECUTE";
 
@@ -122,39 +117,35 @@ export interface Mic1CacheState {
 /** Modo de execucao selecionado na UI. */
 export type RunMode = "idle" | "running-macro" | "running-micro";
 
-/** Normaliza uma palavra de 16 bits (que pode chegar negativa, pois o
- * C usa int16_t) para sua representacao SEM SINAL de 0..65535, usada
- * para exibir binario e hexadecimal. O valor COM sinal (para exibir
- * "AC = -3", por exemplo) continua vindo direto do backend. */
-export function toUnsigned16(value: number): number {
-  return value & 0xffff;
+// Normaliza para uint16 (0..65535)
+export function toUnsigned16(valor: number): number {
+  return valor & 0xffff;
 }
 
-export function toBinaryString(value: number): string {
-  return toUnsigned16(value).toString(2).padStart(16, "0");
+export function toBinaryString(valor: number): string {
+  return toUnsigned16(valor).toString(2).padStart(16, "0");
 }
 
-export function toHexString(value: number): string {
-  return toUnsigned16(value).toString(16).padStart(4, "0").toUpperCase();
+export function toHexString(valor: number): string {
+  return toUnsigned16(valor).toString(16).padStart(4, "0").toUpperCase();
 }
 
-/** Apenas exibicao: a execucao continua no motor C. */
-export function formatInstruction(word: number): string {
-  const value = word & 0xffff;
-  if ((value & 0xfc00) === 0xe000) {
-    return `CALL ${value & 0x3ff}`;
+export function formatInstruction(palavra: number): string {
+  const valor = palavra & 0xffff;
+  if ((valor & 0xfc00) === 0xe000) {
+    return `CALL ${valor & 0x3ff}`;
   }
-  const names = [
+  const nomes = [
     "LODD", "STOD", "ADDD", "SUBD",
     "JPOS", "JZER", "JUMP", "LOCO",
     "LODL", "STOL", "ADDL", "SUBL",
     "JNEG", "JNZE"
   ];
-  const opcode = value >>> 12;
-  if (opcode < 14) return `${names[opcode]} ${value & 0xfff}`;
-  if ((value & 0xff00) === 0xfc00) return `INSP ${value & 0xff}`;
-  if ((value & 0xff00) === 0xfe00) return `DESP ${value & 0xff}`;
-  const extended: Record<number, string> = {
+  const opcode = valor >>> 12;
+  if (opcode < 14) return `${nomes[opcode]} ${valor & 0xfff}`;
+  if ((valor & 0xff00) === 0xfc00) return `INSP ${valor & 0xff}`;
+  if ((valor & 0xff00) === 0xfe00) return `DESP ${valor & 0xff}`;
+  const estendidas: Record<number, string> = {
     0xf000: "PSHI",
     0xf200: "POPI",
     0xf400: "PUSH",
@@ -162,5 +153,5 @@ export function formatInstruction(word: number): string {
     0xf800: "RETN",
     0xfa00: "SWAP"
   };
-  return extended[value] ?? `Inválida (0x${toHexString(value)})`;
+  return estendidas[valor] ?? `Inválida (0x${toHexString(valor)})`;
 }

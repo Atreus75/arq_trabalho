@@ -2,361 +2,371 @@
 import { create } from "zustand";
 import type { AssembleResult, Mic1CpuState, Mic1CacheState, Mic1CacheConfig, StepUnit } from "../types/mic1";
 import { assembleProgram, simInit, simStepMacro, simStepMicro, simStepSubcycle } from "../api/client";
-import { EXAMPLES } from "./examples";
+import { EXEMPLOS } from "./examples";
 
-export const CLOCK_SPEEDS = [
+export const VELOCIDADES_CLOCK = [
   { label: "Lento", intervalMs: 1000 },
   { label: "Normal", intervalMs: 350 },
   { label: "Rápido", intervalMs: 60 },
 ] as const;
 
-let generation = 0;
-const describeError = (error: unknown) => error instanceof Error ? error.message : String(error);
+let geracao = 0;
+function descreverErro(erro: unknown) {
+  if (erro instanceof Error) return erro.message;
+  return String(erro);
+}
 
 interface Mic1Store {
-  sourceCode: string;
-  assembleResult: AssembleResult | null;
-  cpuState: Mic1CpuState | null;
-  cacheState: Mic1CacheState | null;
-  writtenAddresses: number[];
-  isAssembling: boolean;
-  isCpuInitialized: boolean;
-  isStepping: boolean;
-  lastError: string | null;
-  runMode: "idle" | "running-macro";
-  clockSpeedIndex: number;
-  delayMs: number;
-  executionTimeMs: number;
-  runStartCount: number;
-  _intervalHandle: ReturnType<typeof setInterval> | null;
-  stepUnit: StepUnit;
+  codigoFonte: string;
+  resultadoMontagem: AssembleResult | null;
+  estadoCpu: Mic1CpuState | null;
+  estadoCache: Mic1CacheState | null;
+  enderecosGravados: number[];
+  montando: boolean;
+  cpuIniciada: boolean;
+  executandoPasso: boolean;
+  ultimoErro: string | null;
+  modoExecucao: "idle" | "running-macro";
+  indiceVelocidade: number;
+  pausaMs: number;
+  tempoExecucaoMs: number;
+  contagemInicio: number;
+  _timer: ReturnType<typeof setInterval> | null;
+  unidadePasso: StepUnit;
   breakpoint: number | null;
-  breakpointTriggered: boolean;
-  pauseReason: string | null;
+  breakpointAtivado: boolean;
+  motivoPausa: string | null;
 
-  setSourceCode: (code: string) => void;
-  assemble: () => Promise<void>;
-  assembleOnly: () => Promise<void>;
-  loadProgramToMemory: () => Promise<void>;
-  setStepUnit: (unit: StepUnit) => void;
+  setCodigoFonte: (code: string) => void;
+  montarEIniciar: () => Promise<void>;
+  apenasMontar: () => Promise<void>;
+  gravarNaMemoria: () => Promise<void>;
+  setUnidadePasso: (unidade: StepUnit) => void;
   setBreakpoint: (address: number | null) => void;
-  applyBreakpoint: (address: number | null) => void;
-  setDelayMs: (ms: number) => void;
-  setClockSpeedIndex: (index: number) => void;
-  stepSelected: () => Promise<void>;
-  _step: (unit: StepUnit) => Promise<void>;
-  stepMacro: () => Promise<void>;
-  startRunMacro: () => void;
-  pause: () => void;
-  reset: () => Promise<void>;
-  configureCache: (config: Partial<Mic1CacheConfig>) => Promise<void>;
+  aplicarBreakpoint: (address: number | null) => void;
+  setPausaMs: (ms: number) => void;
+  setIndiceVelocidade: (indice: number) => void;
+  passoSelecionado: () => Promise<void>;
+  _passo: (unidade: StepUnit) => Promise<void>;
+  passoInstrucao: () => Promise<void>;
+  iniciarExecucao: () => void;
+  pausar: () => void;
+  reiniciar: () => Promise<void>;
+  configurarCache: (config: Partial<Mic1CacheConfig>) => Promise<void>;
 }
 
 export const useMic1Store = create<Mic1Store>((set, get) => ({
-  sourceCode: EXAMPLES[0].source,
-  assembleResult: null,
-  cpuState: null,
-  cacheState: null,
-  writtenAddresses: [],
-  isAssembling: false,
-  isCpuInitialized: false,
-  isStepping: false,
-  lastError: null,
-  runMode: "idle",
-  clockSpeedIndex: 0,
-  delayMs: 1000,
-  executionTimeMs: 0,
-  runStartCount: 0,
-  stepUnit: "cycle",
+  codigoFonte: EXEMPLOS[0].source,
+  resultadoMontagem: null,
+  estadoCpu: null,
+  estadoCache: null,
+  enderecosGravados: [],
+  montando: false,
+  cpuIniciada: false,
+  executandoPasso: false,
+  ultimoErro: null,
+  modoExecucao: "idle",
+  indiceVelocidade: 0,
+  pausaMs: 1000,
+  tempoExecucaoMs: 0,
+  contagemInicio: 0,
+  unidadePasso: "cycle",
   breakpoint: null,
-  breakpointTriggered: false,
-  pauseReason: null,
-  _intervalHandle: null,
+  breakpointAtivado: false,
+  motivoPausa: null,
+  _timer: null,
 
-  setStepUnit: (stepUnit) => { get().pause(); set({ stepUnit }); },
+  setUnidadePasso: (unidadePasso) => { get().pausar(); set({ unidadePasso }); },
   setBreakpoint: (breakpoint) => set({ breakpoint }),
-  applyBreakpoint: (breakpoint) => set({ breakpoint, breakpointTriggered: false, pauseReason: null }),
+  aplicarBreakpoint: (breakpoint) => set({ breakpoint, breakpointAtivado: false, motivoPausa: null }),
 
-  setDelayMs: (delayMs: number) => {
-    const clamped = Math.max(50, Math.min(5000, Math.trunc(delayMs) || 1000));
-    set({ delayMs: clamped });
-    if (get().runMode === "running-macro") {
-      const handle = get()._intervalHandle;
-      if (handle !== null) clearInterval(handle);
-      let lastTime = Date.now();
-      const newHandle = setInterval(() => {
-        const now = Date.now();
-        const delta = now - lastTime;
-        lastTime = now;
-        set((s) => ({ executionTimeMs: s.executionTimeMs + delta }));
-        void get().stepSelected();
-      }, clamped);
-      set({ _intervalHandle: newHandle });
+  setPausaMs: (pausaMs: number) => {
+    const limitado = Math.max(50, Math.min(5000, Math.trunc(pausaMs) || 1000));
+    set({ pausaMs: limitado });
+    if (get().modoExecucao === "running-macro") {
+      const timer = get()._timer;
+      if (timer !== null) clearInterval(timer);
+      let ultimoTempo = Date.now();
+      const novoTimer = setInterval(() => {
+        const agora = Date.now();
+        const delta = agora - ultimoTempo;
+        ultimoTempo = agora;
+        set((s) => ({ tempoExecucaoMs: s.tempoExecucaoMs + delta }));
+        void get().passoSelecionado();
+      }, limitado);
+      set({ _timer: novoTimer });
     }
   },
 
-  setClockSpeedIndex: (index) => {
-    if (!Number.isInteger(index) || index < 0 || index >= CLOCK_SPEEDS.length) return;
-    const ms = CLOCK_SPEEDS[index].intervalMs;
-    set({ clockSpeedIndex: index, delayMs: ms });
-    if (get().runMode === "running-macro") {
-      const handle = get()._intervalHandle;
-      if (handle !== null) clearInterval(handle);
-      let lastTime = Date.now();
-      const newHandle = setInterval(() => {
-        const now = Date.now();
-        const delta = now - lastTime;
-        lastTime = now;
-        set((s) => ({ executionTimeMs: s.executionTimeMs + delta }));
-        void get().stepSelected();
+  setIndiceVelocidade: (indice) => {
+    if (!Number.isInteger(indice) || indice < 0 || indice >= VELOCIDADES_CLOCK.length) return;
+    const ms = VELOCIDADES_CLOCK[indice].intervalMs;
+    set({ indiceVelocidade: indice, pausaMs: ms });
+    if (get().modoExecucao === "running-macro") {
+      const timer = get()._timer;
+      if (timer !== null) clearInterval(timer);
+      let ultimoTempo = Date.now();
+      const novoTimer = setInterval(() => {
+        const agora = Date.now();
+        const delta = agora - ultimoTempo;
+        ultimoTempo = agora;
+        set((s) => ({ tempoExecucaoMs: s.tempoExecucaoMs + delta }));
+        void get().passoSelecionado();
       }, ms);
-      set({ _intervalHandle: newHandle });
+      set({ _timer: novoTimer });
     }
   },
 
-  stepSelected: () => get()._step(get().stepUnit),
-  stepMacro: () => get()._step("instruction"),
+  passoSelecionado: () => get()._passo(get().unidadePasso),
+  passoInstrucao: () => get()._passo("instruction"),
 
-  setSourceCode: (sourceCode) => {
-    generation++;
-    get().pause();
+  setCodigoFonte: (codigoFonte) => {
+    geracao++;
+    get().pausar();
     set({
-      sourceCode,
-      assembleResult: null,
-      cpuState: null,
-      cacheState: null,
-      writtenAddresses: [],
-      isAssembling: false,
-      isStepping: false,
-      isCpuInitialized: false,
-      pauseReason: null,
-      lastError: null,
-      executionTimeMs: 0,
-      breakpointTriggered: false,
+      codigoFonte,
+      resultadoMontagem: null,
+      estadoCpu: null,
+      estadoCache: null,
+      enderecosGravados: [],
+      montando: false,
+      executandoPasso: false,
+      cpuIniciada: false,
+      motivoPausa: null,
+      ultimoErro: null,
+      tempoExecucaoMs: 0,
+      breakpointAtivado: false,
     });
   },
 
-  assembleOnly: async () => {
-    get().pause();
-    const id = ++generation;
-    const sourceCode = get().sourceCode;
-    set({ isAssembling: true, assembleResult: null, pauseReason: null, lastError: null });
+  apenasMontar: async () => {
+    get().pausar();
+    const id = ++geracao;
+    const codigoFonte = get().codigoFonte;
+    set({ montando: true, resultadoMontagem: null, motivoPausa: null, ultimoErro: null });
     try {
-      const result = await assembleProgram({ sourceCode });
-      if (id !== generation) return;
-      set({ assembleResult: result, isAssembling: false });
-    } catch (error) {
-      if (id === generation) set({ isAssembling: false, lastError: describeError(error) });
+      const resultado = await assembleProgram({ sourceCode: codigoFonte });
+      if (id !== geracao) return;
+      set({ resultadoMontagem: resultado, montando: false });
+    } catch (erro) {
+      if (id === geracao) set({ montando: false, ultimoErro: descreverErro(erro) });
     }
   },
 
-  loadProgramToMemory: async () => {
-    const result = get().assembleResult;
-    if (!result?.success || !result.program.length) {
-      set({ lastError: "Monte o programa com sucesso antes de gravar na MP." });
+  gravarNaMemoria: async () => {
+    const resultado = get().resultadoMontagem;
+    if (!resultado?.success || !resultado.program.length) {
+      set({ ultimoErro: "Monte o programa com sucesso antes de gravar na MP." });
       return;
     }
-    const current = get().cpuState;
-    if (!current) {
-      const id = ++generation;
-      set({ isAssembling: true, lastError: null, pauseReason: null });
+    const atual = get().estadoCpu;
+    if (!atual) {
+      const id = ++geracao;
+      set({ montando: true, ultimoErro: null, motivoPausa: null });
       try {
-        const cpuState = await simInit(result.program.map((word) => word.word));
-        if (id === generation) {
+        const estadoCpu = await simInit(resultado.program.map((word) => word.word));
+        if (id === geracao) {
           set({
-            cpuState,
-            cacheState: cpuState.cache ?? null,
-            isAssembling: false,
-            isCpuInitialized: true,
-            writtenAddresses: result.program.map((w) => w.address),
-            executionTimeMs: 0,
-            breakpointTriggered: false,
+            estadoCpu,
+            estadoCache: estadoCpu.cache ?? null,
+            montando: false,
+            cpuIniciada: true,
+            enderecosGravados: resultado.program.map((w) => w.address),
+            tempoExecucaoMs: 0,
+            breakpointAtivado: false,
           });
         }
-      } catch (error) {
-        if (id === generation) set({ isAssembling: false, lastError: describeError(error) });
+      } catch (erro) {
+        if (id === geracao) set({ montando: false, ultimoErro: descreverErro(erro) });
       }
       return;
     }
 
-    const newMemory = [...current.memory];
-    const written = new Set(get().writtenAddresses);
-    for (const w of result.program) {
-      newMemory[w.address] = w.word;
-      written.add(w.address);
+    const novaMemoria = [...atual.memory];
+    const gravados = new Set(get().enderecosGravados);
+    for (const w of resultado.program) {
+      novaMemoria[w.address] = w.word;
+      gravados.add(w.address);
     }
-    const updatedState: Mic1CpuState = {
-      ...current,
-      memory: newMemory,
+    const novoEstado: Mic1CpuState = {
+      ...atual,
+      memory: novaMemoria,
     };
     set({
-      cpuState: updatedState,
-      writtenAddresses: [...written].sort((a, b) => a - b),
-      lastError: null,
+      estadoCpu: novoEstado,
+      enderecosGravados: [...gravados].sort((a, b) => a - b),
+      ultimoErro: null,
     });
   },
 
-  assemble: async () => {
-    get().pause();
-    const id = ++generation;
-    const sourceCode = get().sourceCode;
+  montarEIniciar: async () => {
+    get().pausar();
+    const id = ++geracao;
+    const codigoFonte = get().codigoFonte;
     set({
-      isAssembling: true,
-      isStepping: false,
-      cpuState: null,
-      cacheState: null,
-      assembleResult: null,
-      isCpuInitialized: false,
-      writtenAddresses: [],
-      pauseReason: null,
-      lastError: null,
-      executionTimeMs: 0,
-      breakpointTriggered: false,
+      montando: true,
+      executandoPasso: false,
+      estadoCpu: null,
+      estadoCache: null,
+      resultadoMontagem: null,
+      cpuIniciada: false,
+      enderecosGravados: [],
+      motivoPausa: null,
+      ultimoErro: null,
+      tempoExecucaoMs: 0,
+      breakpointAtivado: false,
     });
     try {
-      const result = await assembleProgram({ sourceCode });
-      if (id !== generation) return;
-      set({ assembleResult: result });
-      if (!result.success) { set({ isAssembling: false }); return; }
-      const cpuState = await simInit(result.program.map((word) => word.word));
-      if (id !== generation) return;
+      const resultado = await assembleProgram({ sourceCode: codigoFonte });
+      if (id !== geracao) return;
+      set({ resultadoMontagem: resultado });
+      if (!resultado.success) { set({ montando: false }); return; }
+      const estadoCpu = await simInit(resultado.program.map((word) => word.word));
+      if (id !== geracao) return;
       set({
-        cpuState,
-        cacheState: cpuState.cache ?? null,
-        isAssembling: false,
-        isCpuInitialized: true,
-        writtenAddresses: result.program.map((w) => w.address),
+        estadoCpu,
+        estadoCache: estadoCpu.cache ?? null,
+        montando: false,
+        cpuIniciada: true,
+        enderecosGravados: resultado.program.map((w) => w.address),
       });
-    } catch (error) {
-      if (id === generation) set({ isAssembling: false, lastError: describeError(error) });
+    } catch (erro) {
+      if (id === geracao) set({ montando: false, ultimoErro: descreverErro(erro) });
     }
   },
 
-  _step: async (unit) => {
-    const { cpuState, isStepping, isAssembling } = get();
-    if (!cpuState || cpuState.halted || isStepping || isAssembling) return;
-    const id = generation;
-    set({ isStepping: true, lastError: null, pauseReason: null });
+  _passo: async (unidade) => {
+    const { estadoCpu, executandoPasso, montando } = get();
+    if (!estadoCpu || estadoCpu.halted || executandoPasso || montando) return;
+    const id = geracao;
+    set({ executandoPasso: true, ultimoErro: null, motivoPausa: null });
     try {
-      const next = await (unit === "instruction" ? simStepMacro : unit === "cycle" ? simStepMicro : simStepSubcycle)(cpuState);
-      if (id !== generation) return;
+      let proximo: Mic1CpuState;
+      if (unidade === "instruction") {
+        proximo = await simStepMacro(estadoCpu);
+      } else if (unidade === "cycle") {
+        proximo = await simStepMicro(estadoCpu);
+      } else {
+        proximo = await simStepSubcycle(estadoCpu);
+      }
+      if (id !== geracao) return;
 
-      const written = new Set(get().writtenAddresses);
-      for (const entry of next.trace) {
-        if (entry.writeAddress >= 0) written.add(entry.writeAddress);
+      const gravados = new Set(get().enderecosGravados);
+      for (const item of proximo.trace) {
+        if (item.writeAddress >= 0) gravados.add(item.writeAddress);
       }
       set({
-        cpuState: next,
-        cacheState: next.cache ?? get().cacheState,
-        isStepping: false,
-        writtenAddresses: [...written].sort((a, b) => a - b),
-        lastError: next.errorMessage || null,
+        estadoCpu: proximo,
+        estadoCache: proximo.cache ?? get().estadoCache,
+        executandoPasso: false,
+        enderecosGravados: [...gravados].sort((a, b) => a - b),
+        ultimoErro: proximo.errorMessage || null,
       });
 
-      if (next.halted) {
-        get().pause();
-      } else if (get().runMode !== "idle" && get().breakpoint !== null && !get().breakpointTriggered) {
-        if ((next.pc & 4095) === get().breakpoint) {
-          get().pause();
+      if (proximo.halted) {
+        get().pausar();
+      } else if (get().modoExecucao !== "idle" && get().breakpoint !== null && !get().breakpointAtivado) {
+        if ((proximo.pc & 4095) === get().breakpoint) {
+          get().pausar();
           set({
-            breakpointTriggered: true,
-            pauseReason: `Pausa no endereço ${next.pc} (Breakpoint atingido). Clique em Executar para continuar.`,
+            breakpointAtivado: true,
+            motivoPausa: `Pausa no endereço ${proximo.pc} (Breakpoint atingido). Clique em Executar para continuar.`,
           });
         }
       }
-    } catch (error) {
-      if (id !== generation) return;
-      set({ isStepping: false, lastError: describeError(error) });
-      get().pause();
+    } catch (erro) {
+      if (id !== geracao) return;
+      set({ executandoPasso: false, ultimoErro: descreverErro(erro) });
+      get().pausar();
     }
   },
 
-  startRunMacro: () => {
+  iniciarExecucao: () => {
     const state = get();
-    if (state.runMode !== "idle" || !state.cpuState || state.cpuState.halted || state.isAssembling || state.isStepping) return;
-    let lastTime = Date.now();
-    const handle = setInterval(() => {
-      const now = Date.now();
-      const delta = now - lastTime;
-      lastTime = now;
-      set((s) => ({ executionTimeMs: s.executionTimeMs + delta }));
-      void get().stepSelected();
-    }, state.delayMs);
+    if (state.modoExecucao !== "idle" || !state.estadoCpu || state.estadoCpu.halted || state.montando || state.executandoPasso) return;
+    let ultimoTempo = Date.now();
+    const timer = setInterval(() => {
+      const agora = Date.now();
+      const delta = agora - ultimoTempo;
+      ultimoTempo = agora;
+      set((s) => ({ tempoExecucaoMs: s.tempoExecucaoMs + delta }));
+      void get().passoSelecionado();
+    }, state.pausaMs);
     set({
-      runMode: "running-macro",
-      _intervalHandle: handle,
-      runStartCount: state.cpuState.instructionsExecuted,
+      modoExecucao: "running-macro",
+      _timer: timer,
+      contagemInicio: state.estadoCpu.instructionsExecuted,
     });
-    void get().stepSelected();
+    void get().passoSelecionado();
   },
 
-  pause: () => {
-    const handle = get()._intervalHandle;
-    if (handle !== null) clearInterval(handle);
-    set({ runMode: "idle", _intervalHandle: null });
+  pausar: () => {
+    const timer = get()._timer;
+    if (timer !== null) clearInterval(timer);
+    set({ modoExecucao: "idle", _timer: null });
   },
 
-  reset: async () => {
-    get().pause();
-    const result = get().assembleResult;
-    if (!result?.success) return;
-    const id = ++generation;
+  reiniciar: async () => {
+    get().pausar();
+    const resultado = get().resultadoMontagem;
+    if (!resultado?.success) return;
+    const id = ++geracao;
     set({
-      isAssembling: true,
-      isStepping: false,
-      pauseReason: null,
-      lastError: null,
-      cpuState: null,
-      cacheState: null,
-      isCpuInitialized: false,
-      writtenAddresses: [],
-      executionTimeMs: 0,
-      breakpointTriggered: false,
+      montando: true,
+      executandoPasso: false,
+      motivoPausa: null,
+      ultimoErro: null,
+      estadoCpu: null,
+      estadoCache: null,
+      cpuIniciada: false,
+      enderecosGravados: [],
+      tempoExecucaoMs: 0,
+      breakpointAtivado: false,
     });
     try {
-      const cpuState = await simInit(result.program.map((word) => word.word));
-      if (id === generation) {
+      const estadoCpu = await simInit(resultado.program.map((word) => word.word));
+      if (id === geracao) {
         set({
-          cpuState,
-          cacheState: cpuState.cache ?? null,
-          isAssembling: false,
-          isCpuInitialized: true,
-          writtenAddresses: result.program.map((w) => w.address),
+          estadoCpu,
+          estadoCache: estadoCpu.cache ?? null,
+          montando: false,
+          cpuIniciada: true,
+          enderecosGravados: resultado.program.map((w) => w.address),
         });
       }
-    } catch (error) {
-      if (id === generation) set({ isAssembling: false, lastError: describeError(error) });
+    } catch (erro) {
+      if (id === geracao) set({ montando: false, ultimoErro: descreverErro(erro) });
     }
   },
 
-  configureCache: async (config: Partial<Mic1CacheConfig>) => {
-    const currentCpu = get().cpuState;
-    const body = {
-      state: currentCpu ?? undefined,
+  configurarCache: async (config: Partial<Mic1CacheConfig>) => {
+    const cpuAtual = get().estadoCpu;
+    const corpo = {
+      state: cpuAtual ?? undefined,
       config,
     };
     try {
       const res = await fetch("/api/sim/cache-config", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        body: JSON.stringify(corpo),
       });
-      const data = await res.json();
-      if (data.ok) {
-        if (data.state) {
+      const dados = await res.json();
+      if (dados.ok) {
+        if (dados.state) {
           set({
-            cpuState: data.state,
-            cacheState: data.cache ?? data.state.cache ?? null,
-            lastError: null,
+            estadoCpu: dados.state,
+            estadoCache: dados.cache ?? dados.state.cache ?? null,
+            ultimoErro: null,
           });
-        } else if (data.cache) {
-          set({ cacheState: data.cache, lastError: null });
+        } else if (dados.cache) {
+          set({ estadoCache: dados.cache, ultimoErro: null });
         }
       } else {
-        set({ lastError: data.errorMessage || "Erro ao configurar a cache." });
+        set({ ultimoErro: dados.errorMessage || "Erro ao configurar a cache." });
       }
-    } catch (err) {
-      set({ lastError: describeError(err) });
+    } catch (erro) {
+      set({ ultimoErro: descreverErro(erro) });
     }
   },
 }));

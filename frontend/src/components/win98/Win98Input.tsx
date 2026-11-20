@@ -1,7 +1,4 @@
-/**
- * Campos de entrada estilo Win98: fundo branco com borda entalhada
- * (sunken bevel) — o oposto visual do botão saliente.
- */
+// Inputs estilo Win98
 import type { TextareaHTMLAttributes, InputHTMLAttributes } from "react";
 
 export function Win98TextArea({ className = "", ...rest }: TextareaHTMLAttributes<HTMLTextAreaElement>) {
@@ -22,7 +19,6 @@ export function Win98Input({ className = "", ...rest }: InputHTMLAttributes<HTML
   );
 }
 
-/** Painel com borda entalhada, usado para áreas de exibição de dados (não editáveis). */
 export function Win98Sunken({ className = "", children }: { className?: string; children: React.ReactNode }) {
   return <div className={`bg-white shadow-win-in ${className}`}>{children}</div>;
 }

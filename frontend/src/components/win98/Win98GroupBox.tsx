@@ -1,8 +1,4 @@
-/**
- * Win98GroupBox: o clássico "quadro com legenda" do Windows — uma borda
- * fina entalhada com o título sobreposto na borda superior esquerda.
- * Usado para agrupar registradores, controles de execução, etc.
- */
+// Fieldset / groupbox estilo Win98
 import type { ReactNode } from "react";
 
 export function Win98GroupBox({ title, children, className = "" }: { title: string; children: ReactNode; className?: string }) {

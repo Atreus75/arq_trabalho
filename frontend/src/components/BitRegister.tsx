@@ -1,9 +1,4 @@
-/**
- * BitRegister: exibe um registrador de 16 bits como uma fileira de
- * indicadores retangulares (estilo painel de controle clássico: LED
- * apagado = ranhura entalhada cinza; LED aceso = quadrado colorido
- * sólido), além dos valores decimal (com sinal) e hexadecimal.
- */
+// Exibe registrador de 16 bits com bits individuais
 import { toUnsigned16, toHexString } from "../types/mic1";
 import { Win98GroupBox } from "./win98/Win98GroupBox";
 
@@ -13,18 +8,18 @@ interface BitRegisterProps {
   bitWidth?: 12 | 16;
   accent?: "data" | "control" | "warn";
   description?: string;
-  showBits?: boolean;
+  mostrarBits?: boolean;
 }
 
-const ACCENT_BG: Record<NonNullable<BitRegisterProps["accent"]>, string> = {
+const COR_FUNDO: Record<NonNullable<BitRegisterProps["accent"]>, string> = {
   data: "bg-signal-data",
   control: "bg-signal-control",
   warn: "bg-signal-warn",
 };
 
-export function BitRegister({ label, value, bitWidth = 16, accent = "data", description, showBits = false }: BitRegisterProps) {
-  const unsigned = toUnsigned16(value);
-  const bits = unsigned.toString(2).padStart(bitWidth, "0").split("");
+export function BitRegister({ label, value, bitWidth = 16, accent = "data", description, mostrarBits = false }: BitRegisterProps) {
+  const semSinal = toUnsigned16(value);
+  const bits = semSinal.toString(2).padStart(bitWidth, "0").split("");
 
   return (
     <Win98GroupBox title={label}>
@@ -34,12 +29,12 @@ export function BitRegister({ label, value, bitWidth = 16, accent = "data", desc
           <span className="font-mono text-[11px] text-win-disabledText">0x{toHexString(value)}</span>
         </div>
         <p className="text-[11px] text-win-faceDarker">{description}</p>
-        {showBits && <div className="flex gap-[2px]" role="img" aria-label={`${label} = ${value} em binario ${bits.join("")}`}>
+        {mostrarBits && <div className="flex gap-[2px]" role="img" aria-label={`${label} = ${value} em binario ${bits.join("")}`}>
           {bits.map((bit, i) => (
             <span
               key={i}
               className={`flex-1 aspect-square ${
-                bit === "1" ? `${ACCENT_BG[accent]} shadow-win-in-1` : "bg-win-face shadow-win-in-1"
+                bit === "1" ? `${COR_FUNDO[accent]} shadow-win-in-1` : "bg-win-face shadow-win-in-1"
               }`}
             />
           ))}

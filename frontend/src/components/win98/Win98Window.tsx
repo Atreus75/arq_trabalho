@@ -1,4 +1,3 @@
-/** Moldura simples com o visual classico do Windows. */
 import type { ReactNode } from "react";
 
 interface Win98WindowProps {

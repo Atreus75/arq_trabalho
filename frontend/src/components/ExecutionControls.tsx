@@ -6,70 +6,69 @@ import { Win98GroupBox } from "./win98/Win98GroupBox";
 
 export function ExecutionControls() {
   const {
-    cpuState,
-    runMode,
-    isStepping,
-    isAssembling,
-    delayMs,
-    setDelayMs,
-    stepSelected,
-    startRunMacro,
-    pause,
-    reset,
-    stepUnit,
-    setStepUnit,
+    estadoCpu,
+    modoExecucao,
+    executandoPasso,
+    montando,
+    pausaMs,
+    setPausaMs,
+    passoSelecionado,
+    iniciarExecucao,
+    pausar,
+    reiniciar,
+    unidadePasso,
+    setUnidadePasso,
     breakpoint,
-    breakpointTriggered,
-    applyBreakpoint,
-    pauseReason,
+    breakpointAtivado,
+    aplicarBreakpoint,
+    motivoPausa,
   } = useMic1Store();
 
-  const [bpInput, setBpInput] = useState<string>(breakpoint !== null ? String(breakpoint) : "");
+  const [textoBp, setTextoBp] = useState<string>(breakpoint !== null ? String(breakpoint) : "");
 
   useEffect(() => {
-    if (breakpoint === null) setBpInput("");
-    else setBpInput(String(breakpoint));
+    if (breakpoint === null) setTextoBp("");
+    else setTextoBp(String(breakpoint));
   }, [breakpoint]);
 
-  const running = runMode !== "idle";
-  const disabled = !cpuState || cpuState.halted || isAssembling;
+  const rodando = modoExecucao !== "idle";
+  const disabled = !estadoCpu || estadoCpu.halted || montando;
 
-  const handleApplyBreakpoint = () => {
-    const trimmed = bpInput.trim();
-    if (trimmed === "") {
-      applyBreakpoint(null);
+  const aplicarBp = () => {
+    const limpo = textoBp.trim();
+    if (limpo === "") {
+      aplicarBreakpoint(null);
     } else {
-      const parsed = Math.min(4095, Math.max(0, Math.trunc(Number(trimmed)) || 0));
-      applyBreakpoint(parsed);
+      const valor = Math.min(4095, Math.max(0, Math.trunc(Number(limpo)) || 0));
+      aplicarBreakpoint(valor);
     }
   };
 
   return (
     <Win98GroupBox title="Controles da Simulação">
       <div className="grid grid-cols-2 gap-2">
-        <Win98Button onClick={startRunMacro} disabled={disabled || running || isStepping}>
+        <Win98Button onClick={iniciarExecucao} disabled={disabled || rodando || executandoPasso}>
           ▶ Executar
         </Win98Button>
-        <Win98Button onClick={pause} disabled={!running}>
+        <Win98Button onClick={pausar} disabled={!rodando}>
           Ⅱ Pausar
         </Win98Button>
-        <Win98Button onClick={() => void stepSelected()} disabled={disabled || running || isStepping}>
-          → Passo ({stepUnit === "cycle" ? "Ciclo" : stepUnit === "instruction" ? "Instrução" : "Subciclo"})
+        <Win98Button onClick={() => void passoSelecionado()} disabled={disabled || rodando || executandoPasso}>
+          → Passo ({unidadePasso === "cycle" ? "Ciclo" : unidadePasso === "instruction" ? "Instrução" : "Subciclo"})
         </Win98Button>
-        <Win98Button onClick={() => void reset()} disabled={!cpuState || isAssembling}>
+        <Win98Button onClick={() => void reiniciar()} disabled={!estadoCpu || montando}>
           ↺ Reiniciar
         </Win98Button>
       </div>
 
       <div className="mt-3 space-y-2 text-[12px]">
-        {/* Unidade do passo (F-08: padrao Ciclo) */}
         <label className="flex items-center justify-between gap-2">
           Modo do passo:
           <select
             aria-label="Unidade do passo"
-            value={stepUnit}
-            disabled={running || isStepping}
-            onChange={(e) => setStepUnit(e.target.value as StepUnit)}
+            value={unidadePasso}
+            disabled={rodando || executandoPasso}
+            onChange={(e) => setUnidadePasso(e.target.value as StepUnit)}
             className="bg-white shadow-win-in p-1 font-mono"
           >
             <option value="cycle">Ciclo (padrão)</option>
@@ -78,7 +77,6 @@ export function ExecutionControls() {
           </select>
         </label>
 
-        {/* Delay milissegundos (F-08: 50ms..5000ms, padrao 1000ms) */}
         <label className="flex items-center justify-between gap-2">
           Pausa entre passos (ms):
           <div className="flex items-center gap-1">
@@ -87,8 +85,8 @@ export function ExecutionControls() {
               min={50}
               max={5000}
               step={50}
-              value={delayMs}
-              onChange={(e) => setDelayMs(Number(e.target.value))}
+              value={pausaMs}
+              onChange={(e) => setPausaMs(Number(e.target.value))}
               className="w-20 bg-white shadow-win-in p-1 font-mono text-right"
               aria-label="Pausa entre passos em milissegundos"
             />
@@ -96,7 +94,6 @@ export function ExecutionControls() {
           </div>
         </label>
 
-        {/* Breakpoint PC com botao Aplicar e disparo unico (F-09) */}
         <div className="pt-1 border-t border-win-faceLight">
           <label className="flex items-center justify-between gap-2">
             <span>Pausar quando PC:</span>
@@ -108,28 +105,28 @@ export function ExecutionControls() {
                 min={0}
                 max={4095}
                 placeholder="—"
-                value={bpInput}
-                onChange={(e) => setBpInput(e.target.value)}
+                value={textoBp}
+                onChange={(e) => setTextoBp(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter") handleApplyBreakpoint();
+                  if (e.key === "Enter") aplicarBp();
                 }}
               />
-              <Win98Button onClick={handleApplyBreakpoint} className="px-2 py-0.5 text-[11px]">
+              <Win98Button onClick={aplicarBp} className="px-2 py-0.5 text-[11px]">
                 Aplicar
               </Win98Button>
             </div>
           </label>
           {breakpoint !== null && (
             <p className="text-[11px] text-win-faceDarker mt-1 text-right">
-              Breakpoint armado em <b>PC = {breakpoint}</b> {breakpointTriggered ? "(disparado)" : "(aguardando)"}
+              Breakpoint armado em <b>PC = {breakpoint}</b> {breakpointAtivado ? "(disparado)" : "(aguardando)"}
             </p>
           )}
         </div>
       </div>
 
-      {pauseReason && (
+      {motivoPausa && (
         <div role="status" className="border border-win-highlight bg-win-faceLight/60 p-1.5 text-[12px] mt-2">
-          {pauseReason}
+          {motivoPausa}
         </div>
       )}
     </Win98GroupBox>

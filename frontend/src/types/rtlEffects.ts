@@ -1,17 +1,6 @@
-/**
- * Efeitos RTL (register transfer level) de cada instrução MIC-1, para
- * exibição didática ao lado do binário no Editor. O objetivo é deixar
- * INEQUÍVOCO que instruções como ADDD, SUBD, LODD, STOD operam sobre o
- * CONTEÚDO de um endereço de memória (m[x]), nunca sobre o literal x —
- * essa é a fonte mais comum de confusão ao escrever assembly MIC-1
- * (ex: escrever "ADDD 30" esperando somar o número 30, quando na
- * verdade soma o que estiver armazenado em m[30]).
- *
- * Os templates usam {x} / {y} para o operando já resolvido (endereço
- * decimal, não o label original) — ver resolveRtlEffect abaixo.
- */
+// Efeito RTL de cada instrucao para exibir no editor
 
-const RTL_TEMPLATES: Record<string, string> = {
+const MODELOS_RTL: Record<string, string> = {
   LODD: "ac := m[{x}]",
   STOD: "m[{x}] := ac",
   ADDD: "ac := ac + m[{x}]",
@@ -37,19 +26,15 @@ const RTL_TEMPLATES: Record<string, string> = {
   DESP: "sp := sp - {y}",
 };
 
-/**
- * Resolve o efeito RTL de uma linha já montada, substituindo {x}/{y}
- * pelo valor numérico do operando (extraído de operandDisplay, que já
- * vem resolvido do backend — labels viram número + anotação).
- */
-export function resolveRtlEffect(mnemonic: string, operandDisplay: string): string {
-  const template = RTL_TEMPLATES[mnemonic];
-  if (!template) return "";
+// Substitui {x} e {y} pelo valor numerico do operando
+export function resolveRtlEffect(mnemonico: string, textoOperando: string): string {
+  const modelo = MODELOS_RTL[mnemonico];
+  if (!modelo) return "";
 
-  // operandDisplay chega como "300", "4 (label 'CONTADOR')", "(sem operando)",
+  // textoOperando chega como "300", "4 (label 'CONTADOR')", "(sem operando)",
   // Extrai o numero inicial, quando houver operando.
-  const match = operandDisplay.match(/-?\d+/);
-  const numericValue = match ? match[0] : "";
+  const achou = textoOperando.match(/-?\d+/);
+  const valorNumerico = achou ? achou[0] : "";
 
-  return template.replace("{x}", numericValue).replace("{y}", numericValue);
+  return modelo.replace("{x}", valorNumerico).replace("{y}", valorNumerico);
 }

@@ -1,26 +1,21 @@
-/**
- * App: layout raiz com as 3 janelas (Editor, Processador, Memoria) lado
- * a lado em telas largas, empilhadas em telas estreitas, sobre um
- * "desktop" teal classico do Windows, com uma barra de tarefas
- * decorativa no rodape reforcando a metafora.
- */
+// Layout principal com as 3 janelas (Editor, Processador, Memoria)
 import { useState, useEffect } from "react";
 import { EditorPanel } from "./components/EditorPanel";
 import { ProcessorPanel } from "./components/ProcessorPanel";
 import { MemoryPanel } from "./components/MemoryPanel";
 
 function useClock() {
-  const [now, setNow] = useState(new Date());
+  const [agora, setAgora] = useState(new Date());
   useEffect(() => {
-    const id = setInterval(() => setNow(new Date()), 1000 * 15);
+    const id = setInterval(() => setAgora(new Date()), 1000 * 15);
     return () => clearInterval(id);
   }, []);
-  return now;
+  return agora;
 }
 
 function App() {
-  const now = useClock();
-  const timeLabel = now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  const agora = useClock();
+  const horaTexto = agora.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 
   return (
     <div className="min-h-screen flex flex-col bg-win-desktop">
@@ -50,7 +45,7 @@ function App() {
             Arquitetura de Computadores · 16 bits
           </span>
         </div>
-        <span className="h-7 px-3 flex items-center bg-win-face shadow-win-in text-[12px] select-none shrink-0">{timeLabel}</span>
+        <span className="h-7 px-3 flex items-center bg-win-face shadow-win-in text-[12px] select-none shrink-0">{horaTexto}</span>
       </footer>
     </div>
   );
