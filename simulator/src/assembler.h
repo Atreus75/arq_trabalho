@@ -5,10 +5,10 @@
 #define MAX_SYMBOLS 4096
 
 typedef struct {
-    char name[64];
-    int address;
+    char nome[64];
+    int endereco;
 } AssemblerSymbol;
 
 /* Resultado compativel com a interface. Toda a montagem acontece em C. */
-char *assemble_json(const char *source, const char *savedAs);
+char *assemble_json(const char *codigo, const char *salvoComo);
 #endif

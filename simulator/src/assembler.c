@@ -14,20 +14,20 @@
 
 typedef AssemblerSymbol Symbol;
 typedef struct {
-    int number; char *text; char mnemonic[16], operand[128]; uint16_t word;
+    int numero; char *texto; char mnemonico[16], operando[128]; uint16_t palavra;
 } Line;
 typedef struct {
-    Line lines[MIC1_MEM_SIZE];
+    Line linhas[MIC1_MEM_SIZE];
     Symbol flags[MAX_SYMBOLS];
     Symbol vars[MAX_SYMBOLS];
-    int count, flagCount, varCount, extra, errorLine;
-    char error[180];
+    int qtd, flagCount, qtdVars, extra, linhaErro;
+    char erro[180];
 } Assembly;
 
 static char *trim(char *s) {
     while (isspace((unsigned char)*s)) s++;
-    char *end = s + strlen(s);
-    while (end > s && isspace((unsigned char)end[-1])) *--end = 0;
+    char *fim = s + strlen(s);
+    while (fim > s && isspace((unsigned char)fim[-1])) *--fim = 0;
     return s;
 }
 
@@ -40,54 +40,54 @@ static int identifier(const char *s) {
     return 1;
 }
 
-static int lookup_flag(const Assembly *a, const char *name) {
+static int lookup_flag(const Assembly *a, const char *nome) {
     for (int i = 0; i < a->flagCount; i++) {
-        if (!strcmp(a->flags[i].name, name)) return a->flags[i].address;
+        if (!strcmp(a->flags[i].nome, nome)) return a->flags[i].endereco;
     }
     return -1;
 }
 
-static int lookup_var(const Assembly *a, const char *name) {
-    for (int i = 0; i < a->varCount; i++) {
-        if (!strcmp(a->vars[i].name, name)) return a->vars[i].address;
+static int lookup_var(const Assembly *a, const char *nome) {
+    for (int i = 0; i < a->qtdVars; i++) {
+        if (!strcmp(a->vars[i].nome, nome)) return a->vars[i].endereco;
     }
     return -1;
 }
 
-static void error(Assembly *a, int line, const char *message) {
-    if (*a->error) return;
-    a->errorLine = line;
-    snprintf(a->error, sizeof(a->error), "%s", message);
+static void erro(Assembly *a, int linha, const char *msg) {
+    if (*a->erro) return;
+    a->linhaErro = linha;
+    snprintf(a->erro, sizeof(a->erro), "%s", msg);
 }
 
-static void add_flag(Assembly *a, const char *name, int address, int line) {
-    if (!identifier(name)) {
-        error(a, line, "Identificador invalido (maximo 63 caracteres).");
+static void add_flag(Assembly *a, const char *nome, int endereco, int linha) {
+    if (!identifier(nome)) {
+        erro(a, linha, "Identificador invalido (maximo 63 caracteres).");
         return;
     }
-    if (lookup_flag(a, name) >= 0) {
-        error(a, line, "Rotulo repetido.");
+    if (lookup_flag(a, nome) >= 0) {
+        erro(a, linha, "Rotulo repetido.");
         return;
     }
     if (a->flagCount >= MAX_SYMBOLS) {
-        error(a, line, "Tabela de rotulos cheia.");
+        erro(a, linha, "Tabela de rotulos cheia.");
         return;
     }
     Symbol *s = &a->flags[a->flagCount++];
-    snprintf(s->name, sizeof(s->name), "%s", name);
-    s->address = address;
+    snprintf(s->nome, sizeof(s->nome), "%s", nome);
+    s->endereco = endereco;
 }
 
-static int number(const char *s, long *out) {
+static int numero(const char *s, long *saida) {
     if (!s || !*s) return 0;
-    char *end; errno = 0; long value = strtol(s, &end, 10);
-    if (errno || *end) return 0;
-    *out = value; return 1;
+    char *fim; errno = 0; long valor = strtol(s, &fim, 10);
+    if (errno || *fim) return 0;
+    *saida = valor; return 1;
 }
 
-static int opcode(const char *name) {
+static int opcode(const char *nome) {
     for (int i = 0; i < OP_COUNT; i++) {
-        if (!strcmp(name, MIC1_ISA_TABLE[i].mnemonic)) return i;
+        if (!strcmp(nome, MIC1_ISA_TABLE[i].mnemonico)) return i;
     }
     return -1;
 }
@@ -97,241 +97,241 @@ static bool is_jump_or_call(int op) {
            op == OP_JNEG || op == OP_JNZE || op == OP_CALL;
 }
 
-static void word_json(JsonWriter *w, int address, const Line *l) {
+static void word_json(JsonWriter *w, int endereco, const Line *l) {
     char bits[17];
-    for (int i = 0; i < 16; i++) bits[i] = (char)('0' + ((l->word >> (15 - i)) & 1));
+    for (int i = 0; i < 16; i++) bits[i] = (char)('0' + ((l->palavra >> (15 - i)) & 1));
     bits[16] = 0;
     jw_obj_start(w);
-    jw_key_int(w, "address", address);
-    jw_key_int(w, "word", l->word);
+    jw_key_int(w, "address", endereco);
+    jw_key_int(w, "word", l->palavra);
     jw_key_str(w, "binaryString", bits);
-    jw_key_str(w, "mnemonic", l->mnemonic);
-    jw_key_str(w, "operandDisplay", l->operand);
-    jw_key_int(w, "sourceLine", l->number);
-    jw_key_str(w, "sourceText", l->text ? l->text : "");
+    jw_key_str(w, "mnemonic", l->mnemonico);
+    jw_key_str(w, "operandDisplay", l->operando);
+    jw_key_int(w, "sourceLine", l->numero);
+    jw_key_str(w, "sourceText", l->texto ? l->texto : "");
     jw_obj_end(w);
 }
 
-char *assemble_json(const char *source, const char *savedAs) {
+char *assemble_json(const char *codigo, const char *salvoComo) {
     Assembly *a = calloc(1, sizeof(*a));
     if (!a) return NULL;
-    size_t size = strlen(source);
-    char *copy = malloc(size + 1);
-    if (!copy) { free(a); return NULL; }
-    memcpy(copy, source, size + 1);
-    char *cursor = copy; int lineNumber = 0;
+    size_t tam = strlen(codigo);
+    char *copia = malloc(tam + 1);
+    if (!copia) { free(a); return NULL; }
+    memcpy(copia, codigo, tam + 1);
+    char *cursor = copia; int numLinha = 0;
 
     /* Passada 1: enderecos de instrucoes e rotulos (flags). */
-    while (*cursor && !*a->error) {
-        char *raw = cursor; char *end = strpbrk(cursor, "\r\n");
-        if (end) {
-            char sep = *end; *end = 0; cursor = end + 1;
+    while (*cursor && !*a->erro) {
+        char *bruto = cursor; char *fim = strpbrk(cursor, "\r\n");
+        if (fim) {
+            char sep = *fim; *fim = 0; cursor = fim + 1;
             if (sep == '\r' && *cursor == '\n') cursor++;
         } else {
             cursor += strlen(cursor);
         }
-        if (++lineNumber > MAX_LINES) {
-            error(a, lineNumber, "Limite de 8192 linhas excedido.");
+        if (++numLinha > MAX_LINES) {
+            erro(a, numLinha, "Limite de 8192 linhas excedido.");
             break;
         }
-        char *comment = strchr(raw, ';'), *slash = strstr(raw, "//");
-        if (slash && (!comment || slash < comment)) comment = slash;
-        if (comment) *comment = 0;
-        char *line = trim(raw);
-        if (!*line) continue;
+        char *comentario = strchr(bruto, ';'), *barra = strstr(bruto, "//");
+        if (barra && (!comentario || barra < comentario)) comentario = barra;
+        if (comentario) *comentario = 0;
+        char *linha = trim(bruto);
+        if (!*linha) continue;
 
-        char *colon;
-        while ((colon = strchr(line, ':')) != NULL) {
-            *colon = 0;
-            char *lbl = trim(line);
-            add_flag(a, lbl, a->count, lineNumber);
-            line = trim(colon + 1);
-            if (*a->error) break;
+        char *doisPontos;
+        while ((doisPontos = strchr(linha, ':')) != NULL) {
+            *doisPontos = 0;
+            char *rotulo = trim(linha);
+            add_flag(a, rotulo, a->qtd, numLinha);
+            linha = trim(doisPontos + 1);
+            if (*a->erro) break;
         }
-        if (!*line || *a->error) continue;
-        if (a->count >= MIC1_MEM_SIZE) {
-            error(a, lineNumber, "Programa excede 4096 palavras.");
+        if (!*linha || *a->erro) continue;
+        if (a->qtd >= MIC1_MEM_SIZE) {
+            erro(a, numLinha, "Programa excede 4096 palavras.");
             break;
         }
 
-        Line *l = &a->lines[a->count];
-        l->number = lineNumber;
-        l->text = line;
+        Line *l = &a->linhas[a->qtd];
+        l->numero = numLinha;
+        l->texto = linha;
 
         /* Palavra binaria bruta de 16 bits */
-        if (strlen(line) == 16 && strspn(line, "01") == 16) {
+        if (strlen(linha) == 16 && strspn(linha, "01") == 16) {
             uint16_t val = 0;
-            for (int k = 0; k < 16; k++) val = (uint16_t)((val << 1) | (unsigned)(line[k] - '0'));
-            l->word = val;
+            for (int k = 0; k < 16; k++) val = (uint16_t)((val << 1) | (unsigned)(linha[k] - '0'));
+            l->palavra = val;
             Mic1Opcode op;
             int x, y;
             mic1_decode(val, &op, &x, &y);
             if (op != OP_INVALID && op < OP_COUNT) {
-                strncpy(l->mnemonic, MIC1_ISA_TABLE[op].mnemonic, sizeof(l->mnemonic) - 1);
-                l->mnemonic[sizeof(l->mnemonic) - 1] = '\0';
-                if (MIC1_ISA_TABLE[op].operandKind == 'x') snprintf(l->operand, sizeof(l->operand), "%d", x);
-                else if (MIC1_ISA_TABLE[op].operandKind == 'y') snprintf(l->operand, sizeof(l->operand), "%d", y);
-                else snprintf(l->operand, sizeof(l->operand), "(sem operando)");
+                strncpy(l->mnemonico, MIC1_ISA_TABLE[op].mnemonico, sizeof(l->mnemonico) - 1);
+                l->mnemonico[sizeof(l->mnemonico) - 1] = '\0';
+                if (MIC1_ISA_TABLE[op].tipoOperando == 'x') snprintf(l->operando, sizeof(l->operando), "%d", x);
+                else if (MIC1_ISA_TABLE[op].tipoOperando == 'y') snprintf(l->operando, sizeof(l->operando), "%d", y);
+                else snprintf(l->operando, sizeof(l->operando), "(sem operando)");
             } else {
-                l->mnemonic[0] = '\0';
-                snprintf(l->operand, sizeof(l->operand), "(sem operando)");
+                l->mnemonico[0] = '\0';
+                snprintf(l->operando, sizeof(l->operando), "(sem operando)");
             }
-            a->count++;
+            a->qtd++;
             continue;
         }
 
-        char mn[1024], arg[1024], extraTok[2];
-        if (strlen(line) >= 1024) {
-            error(a, lineNumber, "Linha muito longa (maximo 1023 caracteres).");
+        char mn[1024], arg[1024], sobra[2];
+        if (strlen(linha) >= 1024) {
+            erro(a, numLinha, "Linha muito longa (maximo 1023 caracteres).");
             break;
         }
-        int tokens = sscanf(line, "%1023s %1023s %1s", mn, arg, extraTok);
-        if (tokens > 2 || strlen(mn) >= sizeof(l->mnemonic) || (tokens == 2 && strlen(arg) >= sizeof(l->operand))) {
-            error(a, lineNumber, "Instrucao ou operando invalido; use uma instrucao por linha.");
+        int tokens = sscanf(linha, "%1023s %1023s %1s", mn, arg, sobra);
+        if (tokens > 2 || strlen(mn) >= sizeof(l->mnemonico) || (tokens == 2 && strlen(arg) >= sizeof(l->operando))) {
+            erro(a, numLinha, "Instrucao ou operando invalido; use uma instrucao por linha.");
             break;
         }
         for (size_t i = 0; i <= strlen(mn); i++) {
-            l->mnemonic[i] = (char)toupper((unsigned char)mn[i]);
+            l->mnemonico[i] = (char)toupper((unsigned char)mn[i]);
         }
         if (tokens == 2) {
-            strcpy(l->operand, arg);
+            strcpy(l->operando, arg);
         }
-        a->count++;
+        a->qtd++;
     }
-    if (!a->count && !*a->error) error(a, 0, "Escreva ao menos uma instrucao.");
+    if (!a->qtd && !*a->erro) erro(a, 0, "Escreva ao menos uma instrucao.");
 
     /* Passada 2: codificacao e resolucao de simbolos (flags e vars). */
-    for (int i = 0; i < a->count && !*a->error; i++) {
-        Line *l = &a->lines[i];
-        if (strlen(l->text) == 16 && strspn(l->text, "01") == 16) {
+    for (int i = 0; i < a->qtd && !*a->erro; i++) {
+        Line *l = &a->linhas[i];
+        if (strlen(l->texto) == 16 && strspn(l->texto, "01") == 16) {
             continue; /* Palavra binaria bruta ja codificada */
         }
-        int op = opcode(l->mnemonic);
+        int op = opcode(l->mnemonico);
         if (op < 0) {
-            error(a, l->number, "Mnemonico desconhecido.");
+            erro(a, l->numero, "Mnemonico desconhecido.");
             continue;
         }
-        char kind = MIC1_ISA_TABLE[op].operandKind;
-        if (kind == 'n') {
-            if (*l->operand) {
-                error(a, l->number, "Esta instrucao nao aceita operando.");
+        char tipo = MIC1_ISA_TABLE[op].tipoOperando;
+        if (tipo == 'n') {
+            if (*l->operando) {
+                erro(a, l->numero, "Esta instrucao nao aceita operando.");
                 continue;
             }
             char msg[160];
-            if (mic1_encode(l->mnemonic, 0, &l->word, msg, sizeof(msg))) {
-                error(a, l->number, msg);
+            if (mic1_encode(l->mnemonico, 0, &l->palavra, msg, sizeof(msg))) {
+                erro(a, l->numero, msg);
             }
-            snprintf(l->operand, sizeof(l->operand), "(sem operando)");
+            snprintf(l->operando, sizeof(l->operando), "(sem operando)");
             continue;
         }
 
-        if (!*l->operand) {
-            error(a, l->number, "Falta o operando.");
+        if (!*l->operando) {
+            erro(a, l->numero, "Falta o operando.");
             continue;
         }
 
         char orig[64];
-        snprintf(orig, sizeof(orig), "%s", l->operand);
-        bool isSymbolic = false;
-        long value = 0;
+        snprintf(orig, sizeof(orig), "%s", l->operando);
+        bool ehSimbolico = false;
+        long valor = 0;
         if (is_jump_or_call(op)) {
-            long numVal = 0;
-            if (number(l->operand, &numVal)) {
+            long valNum = 0;
+            if (numero(l->operando, &valNum)) {
                 if (op == OP_CALL) {
-                    if (numVal < 0 || numVal >= 1024) {
-                        error(a, l->number, "CALL nao suporta endereco >= 1024.");
+                    if (valNum < 0 || valNum >= 1024) {
+                        erro(a, l->numero, "CALL nao suporta endereco >= 1024.");
                         continue;
                     }
                 } else {
-                    if (numVal < 0 || numVal > 4095) {
-                        error(a, l->number, "Endereco de salto deve estar entre 0 e 4095.");
+                    if (valNum < 0 || valNum > 4095) {
+                        erro(a, l->numero, "Endereco de salto deve estar entre 0 e 4095.");
                         continue;
                     }
                 }
-                value = numVal;
+                valor = valNum;
             } else {
-                if (!identifier(l->operand)) {
-                    error(a, l->number, "Identificador invalido.");
+                if (!identifier(l->operando)) {
+                    erro(a, l->numero, "Identificador invalido.");
                     continue;
                 }
-                int addr = lookup_flag(a, l->operand);
-                if (addr < 0) {
+                int end = lookup_flag(a, l->operando);
+                if (end < 0) {
                     char msg[160];
-                    snprintf(msg, sizeof(msg), "Rotulo nao declarado para salto: %s", l->operand);
-                    error(a, l->number, msg);
+                    snprintf(msg, sizeof(msg), "Rotulo nao declarado para salto: %s", l->operando);
+                    erro(a, l->numero, msg);
                     continue;
                 }
-                if (op == OP_CALL && addr >= 1024) {
-                    error(a, l->number, "CALL nao suporta endereco >= 1024.");
+                if (op == OP_CALL && end >= 1024) {
+                    erro(a, l->numero, "CALL nao suporta endereco >= 1024.");
                     continue;
                 }
-                value = addr;
-                isSymbolic = true;
+                valor = end;
+                ehSimbolico = true;
             }
         } else {
-            long numVal = 0;
-            if (number(l->operand, &numVal)) {
-                value = numVal;
+            long valNum = 0;
+            if (numero(l->operando, &valNum)) {
+                valor = valNum;
             } else {
-                if (!identifier(l->operand)) {
-                    error(a, l->number, "Identificador invalido ou operando numerico invalido.");
+                if (!identifier(l->operando)) {
+                    erro(a, l->numero, "Identificador invalido ou operando numerico invalido.");
                     continue;
                 }
-                int addr = lookup_var(a, l->operand);
-                if (addr >= 0) {
-                    value = addr;
+                int end = lookup_var(a, l->operando);
+                if (end >= 0) {
+                    valor = end;
                 } else {
-                    if (a->count + a->extra >= MIC1_MEM_SIZE || a->varCount >= MAX_SYMBOLS) {
-                        error(a, l->number, "Memoria ou tabela de variaveis cheia.");
+                    if (a->qtd + a->extra >= MIC1_MEM_SIZE || a->qtdVars >= MAX_SYMBOLS) {
+                        erro(a, l->numero, "Memoria ou tabela de variaveis cheia.");
                         continue;
                     }
-                    addr = a->count + a->extra++;
-                    Symbol *v = &a->vars[a->varCount++];
-                    snprintf(v->name, sizeof(v->name), "%s", l->operand);
-                    v->address = addr;
-                    value = addr;
+                    end = a->qtd + a->extra++;
+                    Symbol *v = &a->vars[a->qtdVars++];
+                    snprintf(v->nome, sizeof(v->nome), "%s", l->operando);
+                    v->endereco = end;
+                    valor = end;
                 }
-                isSymbolic = true;
+                ehSimbolico = true;
             }
         }
 
-        if (!*a->error) {
+        if (!*a->erro) {
             char msg[160];
-            if (mic1_encode(l->mnemonic, value, &l->word, msg, sizeof(msg))) {
-                error(a, l->number, msg);
+            if (mic1_encode(l->mnemonico, valor, &l->palavra, msg, sizeof(msg))) {
+                erro(a, l->numero, msg);
             }
-            if (isSymbolic) {
-                snprintf(l->operand, sizeof(l->operand), "%ld (label '%s')", value, orig);
+            if (ehSimbolico) {
+                snprintf(l->operando, sizeof(l->operando), "%ld (label '%s')", valor, orig);
             } else {
-                snprintf(l->operand, sizeof(l->operand), "%ld", value);
+                snprintf(l->operando, sizeof(l->operando), "%ld", valor);
             }
         }
     }
 
-    JsonWriter w; jw_init(&w); jw_obj_start(&w); jw_key_bool(&w, "success", !*a->error);
+    JsonWriter w; jw_init(&w); jw_obj_start(&w); jw_key_bool(&w, "success", !*a->erro);
     jw_key(&w, "program"); jw_arr_start(&w);
-    if (!*a->error) {
-        for (int i = 0; i < a->count; i++) word_json(&w, i, &a->lines[i]);
+    if (!*a->erro) {
+        for (int i = 0; i < a->qtd; i++) word_json(&w, i, &a->linhas[i]);
     }
     jw_arr_end(&w);
     jw_key(&w, "labelTable"); jw_obj_start(&w);
-    for (int i = 0; i < a->flagCount; i++) jw_key_int(&w, a->flags[i].name, a->flags[i].address);
-    for (int i = 0; i < a->varCount; i++) jw_key_int(&w, a->vars[i].name, a->vars[i].address);
+    for (int i = 0; i < a->flagCount; i++) jw_key_int(&w, a->flags[i].nome, a->flags[i].endereco);
+    for (int i = 0; i < a->qtdVars; i++) jw_key_int(&w, a->vars[i].nome, a->vars[i].endereco);
     jw_obj_end(&w);
     jw_key(&w, "errors"); jw_arr_start(&w);
-    if (*a->error) {
+    if (*a->erro) {
         jw_obj_start(&w);
-        jw_key_int(&w, "lineNumber", a->errorLine);
-        jw_key_str(&w, "message", a->error);
+        jw_key_int(&w, "lineNumber", a->linhaErro);
+        jw_key_str(&w, "message", a->erro);
         jw_key_str(&w, "sourceText", "");
         jw_obj_end(&w);
     }
     jw_arr_end(&w);
-    if (savedAs) jw_key_str(&w, "savedAs", savedAs);
+    if (salvoComo) jw_key_str(&w, "savedAs", salvoComo);
     jw_obj_end(&w);
-    char *out = jw_take(&w);
+    char *saida = jw_take(&w);
     jw_free(&w);
-    free(copy);
+    free(copia);
     free(a);
-    return out;
+    return saida;
 }
