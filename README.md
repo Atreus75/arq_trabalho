@@ -4,7 +4,7 @@ Simulador didático da MIC-1 de 16 bits usada para executar MAC-1.
 O motor, o montador e o servidor local são escritos em **C**. A interface
 React mantém o visual de Windows clássico e o cavalinho discreto.
 
-## Abrir no Windows 10/11 de 64 bits
+## Abrir no Windows
 
 1. Extraia **o ZIP inteiro** para uma pasta, por exemplo `Documentos\mic1-simulator`.
 2. Abra **iniciar.bat**. O navegador abre no endereço `http://127.0.0.1:3001`.
@@ -22,29 +22,6 @@ O endereço, nesse caso, termina em `:3002`.
 Em Linux x86-64: `sh iniciar.sh`, depois abra o endereço mostrado no terminal.
 O código também pode ser recompilado; veja abaixo. Não há binário pronto de macOS.
 
-## Usar e apresentar
-
-1. Escolha **Soma simples**, **Função e pilha**, **Array da aula** ou **Fibonacci da referência**.
-2. Clique em **Montar e iniciar**. Aparecem as palavras binárias e o estado inicial.
-3. Use **Um passo** para avançar ou **Executar** para continuar automaticamente.
-4. Em **Cada passo**, escolha:
-   - **Instrução:** termina uma instrução MAC-1, incluindo sua busca.
-   - **Ciclo:** termina a microinstrução em andamento (quatro subciclos ao todo).
-   - **Subciclo:** avança apenas uma das quatro etapas internas.
-5. Abra **Ver funcionamento interno** para observar os registradores, os sinais
-   de controle, a ULA, o deslocador, os pedidos de memória e o histórico do passo.
-6. **Pausar no endereço** interrompe antes da instrução naquele endereço de memória.
-   Campo vazio desliga a pausa automática. Continuar permite executar a instrução
-   em que parou. O breakpoint é verificado nas fronteiras entre instruções.
-7. **Reiniciar** restaura o programa montado, a memória, os registradores e os contadores.
-
-Alternar o tamanho do passo preserva a execução parcial. Por exemplo, após um
-subciclo, escolher Ciclo executa os três restantes. Escolher Instrução completa
-a instrução atual. Pausar deixa terminar apenas um pedido de passo já enviado.
-
-O painel de memória mostra **Gravados**, **Programa**, **Pilha** ou uma região
-escolhida. Escritas de zero também aparecem. O destaque do programa acompanha a
-instrução em execução; o PC pode ter sido incrementado durante a busca.
 
 ## Como funciona, em linguagem direta
 
@@ -85,7 +62,7 @@ O controle volta ao início da busca. Neste microprograma, essa instrução ocup
 
 Na soma do primeiro exemplo: `LOCO 7` coloca 7 no AC; `STOD 100` guarda o valor;
 `LOCO 5` coloca 5 no AC; `ADDD 100` lê 7 da memória e soma, deixando 12 no AC;
-`STOD 100` salva 12; `HALT` encerra. A tela simples acompanha o resultado, e o
+`STOD 100` salva 12. A tela simples acompanha o resultado, e o
 painel interno mostra as operações menores que o produziram.
 
 ### Registradores principais
@@ -103,7 +80,7 @@ painel interno mostra as operações menores que o produziram.
 
 As 23 instruções da tabela: LODD, STOD, ADDD, SUBD, JPOS, JZER, JUMP, LOCO,
 LODL, STOL, ADDL, SUBL, JNEG, JNZE, CALL, PSHI, POPI, PUSH, POP, RETN, SWAP,
-INSP e DESP. Há ainda a extensão HALT (`0xFF00`). JPOS inclui zero.
+INSP e DESP. JPOS inclui zero.
 
 - Endereços/constantes x: 0 a 4095. INSP/DESP: operando y de 0 a 255.
 - Uma instrução por linha; números decimais; espaços e linhas vazias são permitidos.
@@ -126,16 +103,11 @@ STOD resultado
 LOCO 5
 ADDD resultado
 STOD resultado
-HALT
 ```
-
-Código e dados compartilham a memória. Use HALT ou um salto para evitar executar
-os dados como instruções. `JUMP` para o próprio endereço é um laço, não HALT.
-Após 10.000 instruções na execução automática, a interface pausa; pode continuar.
 
 ## Relação com a referência Java
 
-Referência examinada: https://github.com/csbassin/SimuladorVinod
+Referência examinada: https://github.com/csbassin/SimuladorVinod (monitor Cauã!)
 Commit: `9547d113f9f67de9a6aaeb427cc7d95d9b6a4575` (22/09/2026).
 O JAR enviado também foi inspecionado. O repositório tem alterações posteriores
 à versão do JAR; a implementação C foi conferida contra a tabela MAC-1 e a lógica
@@ -152,8 +124,6 @@ Detalhes definidos nesta versão:
   65535, retorna a 0. Desvios diretos usam os 12 bits do operando.
 - ROM com 256 posições; 81 microinstruções usadas. O conteúdo é consultável pela
   interface e em `docs/microprograma.txt`; a edição da ROM é feita no código C.
-- HALT é uma extensão explícita da tabela de 23 instruções. O microprograma o
-  reconhece e chega a uma palavra com RD e WR simultâneos para encerrar.
 - CALL mantém o operando de **12 bits** da tabela; não reproduz a restrição de
   10 bits presente no montador Java consultado. DESP usa FEyy e SMASK vale 00FF.
 - Palavras reservadas fora das codificações aceitas geram diagnóstico e parada.
@@ -197,10 +167,4 @@ A compilação atualiza `web/`. Para desenvolvimento com recarga automática, in
 o simulador na porta 3001 e rode `npm run dev` em `frontend/`.
 O proxy envia as chamadas ao mesmo motor C.
 
-## Limites da verificação
 
-A validação foi realizada em Linux, com testes nativos, AddressSanitizer
-(e sem o verificador de vazamentos) e UndefinedBehaviorSanitizer. O executável
-Windows x86-64 foi compilado com MinGW-w64 e não depende de DLLs de desenvolvimento.
-Não houve execução em Windows nativo nesta sessão; portanto não se promete ausência
-absoluta de falhas em qualquer computador.
