@@ -20,8 +20,46 @@ Se o navegador não abrir automaticamente, copie o endereço acima. Se a porta
 O endereço, nesse caso, termina em `:3002`.
 
 Em Linux x86-64: `sh iniciar.sh`, depois abra o endereço mostrado no terminal.
-O código também pode ser recompilado; veja abaixo. Não há binário pronto de macOS.
+O código também pode ser recompilado; veja abaixo. Não há binário pronto de macOS,
+mas o simulador pode ser executado com Docker em Linux, Windows e macOS.
 
+## Executar com Docker
+
+É possível compilar a interface e o motor C e rodar o simulador em um container
+Docker, sem precisar instalar GCC ou Node.js localmente.
+
+1. Na pasta raiz do projeto (onde está o `Dockerfile`), construa a imagem:
+
+```sh
+docker build -t mic1-sim .
+```
+
+2. Inicie o container expondo a porta localmente:
+
+```sh
+docker run --rm -p 127.0.0.1:3001:3001 mic1-sim
+```
+
+3. Abra `http://127.0.0.1:3001` no navegador. Mantenha o terminal aberto;
+   pressionar `Ctrl+C` encerra o servidor e remove o container automaticamente.
+
+Observações sobre o uso em container:
+
+- **Acesso local:** o prefixo `127.0.0.1:` em `-p` restringe o acesso ao próprio
+  computador, e o servidor valida o cabeçalho `Host` (`127.0.0.1` ou `localhost`).
+- **Outra porta:** se a porta `3001` estiver ocupada, mapeie outra porta local —
+  por exemplo, `-p 127.0.0.1:3002:3001` — e acesse `http://127.0.0.1:3002`.
+- **Persistir programas salvos:** para manter na sua máquina os arquivos salvos
+  em `programas/` ao encerrar o container, monte a pasta como volume:
+
+```sh
+docker run --rm -p 127.0.0.1:3001:3001 -v ./programas:/app/programas mic1-sim
+```
+
+- **Detalhes do build:** o `Dockerfile` usa build multiestágio com
+  `node:22-bookworm-slim` (base Debian/glibc compatível com os binários nativos
+  do Vite/`lightningcss`) para gerar `web/` e `gcc:14-bookworm` para compilar o
+  motor em C.
 
 ## Como funciona, em linguagem direta
 
@@ -73,7 +111,7 @@ painel interno mostra as operações menores que o produziram.
 - **IR/TIR:** instrução carregada e cópia temporária usada na decodificação.
 - **MAR:** endereço físico da leitura/escrita; **MBR:** palavra transferida.
 - **MPC:** endereço da microinstrução; **MIR:** palavra de controle carregada.
-- **A–F:** registradores auxiliares. Também existem 0, 1, −1, AMASK e SMASK constantes.
+- **A–F:** registradores auxiliares. Também existem 0, 1, -1, AMASK e SMASK constantes.
 - **N/Z:** indicam resultado negativo/zero na saída da ULA, **antes do deslocador**.
 
 ## Assembly aceito
@@ -150,10 +188,14 @@ faz parte do modelo desta entrega.
 | `frontend/src/` | Interface React/TypeScript; não executa as instruções |
 | `web/` | Interface já compilada, pronta para abrir pelo servidor |
 | `bin/` | Executáveis prontos de Windows e Linux x86-64 |
+| `Dockerfile` | Build multiestágio (Node 22 Debian slim + GCC 14) e execução em container |
 
 Para modificar **C**: GCC/MinGW-w64 no Windows, depois `compilar.bat`.
 No Linux/macOS com compilador C, `sh compilar.sh` ou `make`.
 Essa recompilação aproveita a interface pronta e não precisa de Node.js.
+Para que o mapeamento de portas do Docker funcione, `simulator/src/server.c`
+faz o bind em `INADDR_ANY` e mantém a restrição de acesso validando o cabeçalho
+`Host` para `localhost` ou `127.0.0.1`.
 
 Para modificar **a interface**: Node.js 22.12+ e npm, depois:
 
@@ -166,5 +208,3 @@ npm run build
 A compilação atualiza `web/`. Para desenvolvimento com recarga automática, inicie
 o simulador na porta 3001 e rode `npm run dev` em `frontend/`.
 O proxy envia as chamadas ao mesmo motor C.
-
-

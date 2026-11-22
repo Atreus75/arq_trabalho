@@ -172,7 +172,7 @@ int serve_local(int porta,int abrirNavegador) {
     setsockopt(escuta,SOL_SOCKET,SO_REUSEADDR,&sim,sizeof(sim));
 #endif
     struct sockaddr_in addr; memset(&addr,0,sizeof(addr));
-    addr.sin_family=AF_INET; addr.sin_port=htons((unsigned short)porta); addr.sin_addr.s_addr=htonl(INADDR_LOOPBACK);
+    addr.sin_family=AF_INET; addr.sin_port=htons((unsigned short)porta); addr.sin_addr.s_addr=htonl(INADDR_ANY);
     if (bind(escuta,(struct sockaddr*)&addr,sizeof(addr)) || listen(escuta,32)) {
         fprintf(stderr,"Nao foi possivel abrir a porta %d. Feche outra instancia ou use --port 3002.\n",porta); close_socket(escuta); return 1;
     }
